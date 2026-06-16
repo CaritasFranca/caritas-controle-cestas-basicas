@@ -1,0 +1,2717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cáritas — Gestão de Cestas Básicas</title>
+<style>
+  :root {
+    --vermelho:#C0392B;--vermelho-escuro:#922B21;--vermelho-claro:#E74C3C;
+    --vermelho-fundo:#FDEDEC;--branco:#FFFFFF;--cinza-claro:#F4F6F7;
+    --cinza-medio:#D5D8DC;--cinza-texto:#566573;--preto-suave:#1A252F;
+    --verde:#1E8449;--verde-claro:#D5F5E3;--amarelo:#B7950B;
+    --amarelo-claro:#FEF9E7;--azul:#1A5276;--azul-claro:#D6EAF8;
+    --sombra:0 2px 8px rgba(0,0,0,0.10);--sombra-forte:0 4px 20px rgba(0,0,0,0.15);
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--cinza-claro);color:var(--preto-suave);min-height:100vh;}
+  #tela-login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--vermelho-escuro) 0%,var(--vermelho) 60%,var(--vermelho-claro) 100%);}
+  .login-box{background:var(--branco);border-radius:18px;padding:48px 40px 40px;width:100%;max-width:400px;box-shadow:var(--sombra-forte);text-align:center;}
+  .login-titulo{font-size:1.5rem;font-weight:700;color:var(--vermelho);margin-bottom:4px;}
+  .login-sub{font-size:0.85rem;color:var(--cinza-texto);margin-bottom:28px;}
+  .login-box select,.login-box input{width:100%;padding:11px 14px;border:1.5px solid var(--cinza-medio);border-radius:var(--radius);font-size:0.95rem;margin-bottom:12px;outline:none;transition:border 0.2s;color:var(--preto-suave);}
+  .login-box select:focus,.login-box input:focus{border-color:var(--vermelho);}
+  .btn-login{width:100%;padding:12px;background:var(--vermelho);color:var(--branco);border:none;border-radius:var(--radius);font-size:1rem;font-weight:600;cursor:pointer;transition:background 0.2s;margin-top:4px;}
+  .btn-login:hover{background:var(--vermelho-escuro);}
+  .login-erro{color:var(--vermelho);font-size:0.85rem;margin-top:10px;display:none;}
+  #tela-app{display:none;min-height:100vh;flex-direction:column;background:var(--cinza-claro);}
+  .topbar{background:var(--vermelho);color:var(--branco);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;box-shadow:var(--sombra);position:sticky;top:0;z-index:100;}
+  .topbar-esq{display:flex;align-items:center;gap:12px;}
+  .topbar-titulo{font-size:1.05rem;font-weight:700;}
+  .topbar-paroquia{font-size:0.78rem;opacity:0.85;}
+  .topbar-dir{display:flex;align-items:center;gap:10px;}
+  .badge-nivel{background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:0.75rem;font-weight:600;}
+  .btn-sair{background:rgba(255,255,255,0.15);border:none;color:var(--branco);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:0.82rem;transition:background 0.2s;}
+  .btn-sair:hover{background:rgba(255,255,255,0.3);}
+  .abas{background:var(--branco);border-bottom:2px solid var(--cinza-medio);display:flex;padding:0 16px;overflow-x:auto;gap:2px;}
+  .aba{padding:13px 18px;font-size:0.88rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--cinza-texto);transition:all 0.2s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;}
+  .aba:hover{color:var(--vermelho);}
+  .aba.ativa{color:var(--vermelho);border-bottom-color:var(--vermelho);}
+  .conteudo{flex:1;padding:24px;max-width:1100px;margin:0 auto;width:100%;min-width:0;overflow-x:hidden;}
+  .secao{display:none;}.secao.ativa{display:block;}
+  .cards-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+  .card-resumo{background:var(--branco);border-radius:var(--radius);padding:18px 16px;box-shadow:var(--sombra);border-left:4px solid var(--vermelho);}
+  .card-resumo .numero{font-size:2rem;font-weight:800;color:var(--vermelho);line-height:1;}
+  .card-resumo .label{font-size:0.78rem;color:var(--cinza-texto);margin-top:4px;}
+  .tabela-wrap{background:var(--branco);border-radius:var(--radius);box-shadow:var(--sombra);overflow:hidden;margin-bottom:24px;width:100%;}
+  .tabela-header{padding:16px 20px;border-bottom:1px solid var(--cinza-medio);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .tabela-header h3{font-size:1rem;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:var(--cinza-claro);padding:10px 14px;text-align:left;font-size:0.78rem;font-weight:700;color:var(--cinza-texto);text-transform:uppercase;letter-spacing:0.5px;}
+  td{padding:11px 14px;border-bottom:1px solid var(--cinza-claro);font-size:0.88rem;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--vermelho-fundo);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+  .form-grupo{display:flex;flex-direction:column;gap:5px;}
+  .form-grupo.full{grid-column:1/-1;}
+  .form-grupo label{font-size:0.8rem;font-weight:600;color:var(--cinza-texto);}
+  .form-grupo input,.form-grupo select,.form-grupo textarea{padding:9px 12px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;outline:none;transition:border 0.2s;color:var(--preto-suave);}
+  .form-grupo input:focus,.form-grupo select:focus{border-color:var(--vermelho);}
+  .btn{padding:9px 18px;border-radius:8px;border:none;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primario{background:var(--vermelho);color:var(--branco);}
+  .btn-primario:hover{background:var(--vermelho-escuro);}
+  .btn-secundario{background:var(--cinza-claro);color:var(--preto-suave);border:1.5px solid var(--cinza-medio);}
+  .btn-secundario:hover{background:var(--cinza-medio);}
+  .btn-verde{background:var(--verde);color:var(--branco);}
+  .btn-verde:hover{background:#166437;}
+  .btn-perigo{background:#922B21;color:var(--branco);}
+  .btn-perigo:hover{background:#641E16;}
+  .btn-sm{padding:5px 12px;font-size:0.8rem;}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;}
+  .badge-ativo{background:var(--verde-claro);color:var(--verde);}
+  .badge-inativo{background:var(--cinza-medio);color:var(--cinza-texto);}
+  .busca-wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+  .busca-input{padding:8px 14px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;outline:none;transition:border 0.2s;min-width:220px;}
+  .busca-input:focus{border-color:var(--vermelho);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.aberto{display:flex;}
+  .modal{background:var(--branco);border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:var(--sombra-forte);}
+  .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--cinza-medio);display:flex;align-items:center;justify-content:space-between;}
+  .modal-header h2{font-size:1.1rem;font-weight:700;}
+  .modal-fechar{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--cinza-texto);line-height:1;}
+  .modal-body{padding:20px 24px;}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--cinza-medio);display:flex;gap:10px;justify-content:flex-end;}
+  .aviso{padding:12px 16px;border-radius:8px;font-size:0.88rem;margin-bottom:16px;}
+  .aviso-info{background:var(--azul-claro);color:var(--azul);border-left:4px solid var(--azul);}
+  .aviso-ok{background:var(--verde-claro);color:var(--verde);border-left:4px solid var(--verde);}
+  .aviso-alerta{background:var(--amarelo-claro);color:var(--amarelo);border-left:4px solid var(--amarelo);}
+  .vazio{text-align:center;padding:48px 20px;color:var(--cinza-texto);}
+  .vazio-icone{font-size:2.5rem;margin-bottom:10px;}
+  .vazio p{font-size:0.9rem;}
+  .painel-secao{margin-bottom:28px;}
+  .painel-secao-titulo{font-size:0.95rem;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--cinza-medio);}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--preto-suave);color:var(--branco);padding:12px 20px;border-radius:10px;font-size:0.88rem;box-shadow:var(--sombra-forte);z-index:999;display:none;}
+  .toast.ok{background:var(--verde);}
+  .toast.erro{background:var(--vermelho);}
+  .config-box{background:var(--branco);border-radius:var(--radius);padding:24px;box-shadow:var(--sombra);max-width:600px;}
+  .config-box textarea{width:100%;height:180px;font-family:monospace;font-size:0.82rem;resize:vertical;padding:10px;border:1.5px solid var(--cinza-medio);border-radius:8px;}
+  .historico-item{background:var(--cinza-claro);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:0.85rem;display:flex;justify-content:space-between;align-items:center;}
+  .historico-data{font-weight:700;color:var(--vermelho);}
+  .filtro-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .filtro-linha select,.filtro-linha input{padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;outline:none;}
+  .alerta-duplicata{background:var(--amarelo-claro);border:1.5px solid var(--amarelo);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.85rem;color:#7D6608;display:none;}
+  .checkbox-inativo{display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--cinza-texto);cursor:pointer;}
+
+  .secao-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  @media(max-width:640px){
+    .secao-header{flex-direction:column;align-items:stretch;}
+    .secao-header .btn{width:100%;justify-content:center;padding:12px;}
+  }
+  /* ── CARDS MOBILE para lista de famílias ─────────────────── */
+  .familia-card{display:none;background:var(--branco);border-radius:var(--radius);box-shadow:var(--sombra);padding:14px 16px;margin-bottom:10px;border-left:4px solid var(--vermelho);}
+  .familia-card-nome{font-weight:700;font-size:0.95rem;color:var(--preto-suave);margin-bottom:4px;}
+  .familia-card-info{font-size:0.8rem;color:var(--cinza-texto);display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:10px;}
+  .familia-card-info span{display:flex;align-items:center;gap:3px;}
+  .familia-card-acoes{display:flex;gap:8px;}
+  .familia-card-acoes .btn{flex:1;justify-content:center;font-size:0.82rem;padding:8px 10px;}
+
+  @media(max-width:640px){
+    /* Esconder tabela e mostrar cards */
+    #tabela-familias-wrap table{display:none;}
+    .familia-card{display:block;}
+    /* Esconder o tabela-wrap original de famílias e usar cards */
+    #lista-familias-cards{display:block;}
+  }
+
+  /* ── MOBILE RESPONSIVO ──────────────────────────────── */
+  @media(max-width:640px){
+
+    /* Login */
+    #tela-login{padding:16px;align-items:flex-start;padding-top:40px;}
+    .login-box{padding:32px 20px 28px;border-radius:14px;}
+    .login-titulo{font-size:1.25rem;}
+
+    /* Topbar */
+    .topbar{padding:0 14px;height:52px;}
+    .topbar-titulo{font-size:0.95rem;}
+    .topbar-paroquia{display:none;}
+    .badge-nivel{display:none;}
+    .btn-sair{padding:5px 10px;font-size:0.78rem;}
+
+    /* Abas — scroll horizontal */
+    .abas{padding:0 8px;gap:0;}
+    .aba{padding:11px 12px;font-size:0.8rem;}
+
+    /* Conteúdo */
+    .conteudo{padding:12px 10px;}
+
+    /* Cards de resumo — 2 colunas */
+    .cards-resumo{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .card-resumo{padding:14px 12px;}
+    .card-resumo .numero{font-size:1.6rem;}
+    .card-resumo .label{font-size:0.72rem;}
+
+    /* Formulários — 1 coluna */
+    .form-grid,.form-grid.cols3{grid-template-columns:1fr;}
+    .form-grupo input,.form-grupo select,.form-grupo textarea{
+      font-size:1rem; /* evita zoom automático no iOS */
+      padding:11px 12px;
+    }
+
+    /* Busca — empilhada */
+    .busca-wrap{flex-direction:column;align-items:stretch;}
+    .busca-input{min-width:unset;width:100%;font-size:1rem;}
+    .busca-wrap .btn{width:100%;justify-content:center;}
+
+    /* Filtros */
+    .filtro-linha{flex-direction:column;align-items:stretch;}
+    .filtro-linha select,.filtro-linha input{font-size:1rem;padding:10px 12px;}
+
+    /* Tabelas — scroll horizontal com largura mínima */
+    .tabela-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table{min-width:520px;}
+    th,td{padding:9px 10px;font-size:0.82rem;white-space:nowrap;}
+    .tabela-header{flex-direction:column;align-items:stretch;gap:10px;}
+    .tabela-header h3{font-size:0.95rem;}
+    .tabela-header .btn{width:100%;justify-content:center;}
+
+    /* Modal — ocupa quase toda a tela */
+    .modal-overlay{padding:0;align-items:flex-end;}
+    .modal{
+      border-radius:18px 18px 0 0;
+      max-width:100%;
+      max-height:92vh;
+      margin:0;
+    }
+    .modal-header{padding:16px 18px 12px;}
+    .modal-body{padding:16px 18px;}
+    .modal-footer{
+      padding:12px 18px 20px; /* espaço extra para barra home do iOS */
+      flex-direction:column;
+      gap:8px;
+    }
+    .modal-footer .btn{width:100%;justify-content:center;padding:12px;}
+
+    /* Botões gerais */
+    .btn{min-height:44px;} /* área de toque mínima recomendada */
+    .btn-sm{min-height:36px;padding:6px 12px;}
+
+    /* Toast — centralizado no fundo */
+    .toast{bottom:16px;right:12px;left:12px;text-align:center;}
+
+    /* Histórico */
+    .historico-item{flex-direction:column;gap:4px;align-items:flex-start;}
+
+    /* Config box */
+    .config-box{padding:16px;}
+  }
+  /* Campo senha com botão olho */
+  .senha-wrap{position:relative;margin-bottom:12px;}
+  .senha-wrap input{width:100%;padding:11px 44px 11px 14px;border:1.5px solid var(--cinza-medio);border-radius:var(--radius);font-size:0.95rem;outline:none;transition:border 0.2s;color:var(--preto-suave);}
+  .senha-wrap input:focus{border-color:var(--vermelho);}
+  .btn-olho{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--cinza-texto);padding:4px;display:flex;align-items:center;transition:color 0.2s;}
+  .btn-olho:hover{color:var(--vermelho);}
+
+  /* ── CHAT ────────────────────────────────────────────── */
+  .chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:400px;}
+  .chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--cinza-claro);border-radius:var(--radius);margin-bottom:12px;border:1px solid var(--cinza-medio);}
+  .chat-msg{max-width:80%;display:flex;flex-direction:column;gap:3px;}
+  .chat-msg.proprio{align-self:flex-end;align-items:flex-end;}
+  .chat-msg.outro{align-self:flex-start;align-items:flex-start;}
+  .chat-balao{padding:10px 14px;border-radius:14px;font-size:0.88rem;line-height:1.45;word-break:break-word;}
+  .chat-msg.proprio .chat-balao{background:var(--vermelho);color:#fff;border-bottom-right-radius:4px;}
+  .chat-msg.outro .chat-balao{background:#fff;color:var(--preto-suave);border-bottom-left-radius:4px;box-shadow:var(--sombra);}
+  .chat-remetente{font-size:0.72rem;font-weight:700;color:var(--cinza-texto);padding:0 4px;}
+  .chat-hora{font-size:0.68rem;color:var(--cinza-texto);padding:0 4px;}
+  .chat-anexo{margin-top:6px;padding:6px 10px;background:rgba(0,0,0,0.07);border-radius:8px;font-size:0.78rem;border-left:3px solid rgba(255,255,255,0.5);}
+  .chat-msg.outro .chat-anexo{border-left-color:var(--vermelho);}
+  .chat-input-area{display:flex;flex-direction:column;gap:8px;}
+  .chat-anexo-preview{background:var(--amarelo-claro);border:1px solid var(--amarelo);border-radius:8px;padding:8px 12px;font-size:0.82rem;display:none;align-items:center;justify-content:space-between;gap:8px;}
+  .chat-anexo-preview.visivel{display:flex;}
+  .chat-input-linha{display:flex;gap:8px;align-items:flex-end;}
+  .chat-input-linha textarea{flex:1;padding:10px 14px;border:1.5px solid var(--cinza-medio);border-radius:10px;font-size:0.9rem;resize:none;outline:none;font-family:inherit;max-height:120px;transition:border 0.2s;}
+  .chat-input-linha textarea:focus{border-color:var(--vermelho);}
+  .chat-input-linha .btn{min-height:44px;padding:10px 16px;}
+  .chat-sem-firebase{text-align:center;padding:40px 20px;color:var(--cinza-texto);}
+  .chat-badge{background:#E74C3C;color:#fff;border-radius:10px;font-size:0.68rem;padding:1px 6px;margin-left:4px;display:none;}
+  @media(max-width:640px){
+    .chat-wrap{height:calc(100vh - 200px);}
+    .chat-msg{max-width:92%;}
+  }
+
+  /* ── CHAT PRIVADO ────────────────────────────────────── */
+  .chat-abas{display:flex;gap:0;border-bottom:2px solid var(--cinza-medio);margin-bottom:12px;}
+  .chat-aba{padding:9px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;background:none;color:var(--cinza-texto);border-bottom:3px solid transparent;transition:all 0.2s;position:relative;}
+  .chat-aba.ativa{color:var(--vermelho);border-bottom-color:var(--vermelho);}
+  .chat-priv-badge{background:#E74C3C;color:#fff;border-radius:10px;font-size:0.65rem;padding:1px 5px;position:absolute;top:4px;right:4px;}
+  .chat-lista-privados{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+  .chat-priv-item{background:#fff;border-radius:var(--radius);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sombra);border-left:4px solid var(--cinza-medio);transition:border-color 0.2s;}
+  .chat-priv-item:hover{border-left-color:var(--vermelho);}
+  .chat-priv-item.nao-lido{border-left-color:var(--vermelho);}
+  .chat-priv-nome{font-weight:700;font-size:0.9rem;}
+  .chat-priv-par{font-size:0.75rem;color:var(--cinza-texto);}
+  .chat-priv-preview{font-size:0.78rem;color:var(--cinza-texto);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+  .chat-priv-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+  .chat-volta{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .chat-volta button{background:none;border:none;color:var(--vermelho);font-size:0.88rem;font-weight:600;cursor:pointer;padding:4px 0;}
+  .chat-destinatario{font-size:0.85rem;color:var(--cinza-texto);font-weight:600;}
+
+  /* ── ALERTA DUPLICATA ────────────────────────────────── */
+  .alerta-bloqueio{background:#FDF2F8;border-left:4px solid #C0392B;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;}
+  .alerta-bloqueio-titulo{font-weight:700;color:#C0392B;margin-bottom:8px;font-size:0.92rem;}
+  .alerta-bloqueio-item{font-size:0.85rem;color:var(--preto-suave);margin-bottom:4px;}
+  .alerta-bloqueio-hist{margin-top:8px;padding-top:8px;border-top:1px solid #F1948A;}
+  .alerta-bloqueio-hist-titulo{font-size:0.78rem;font-weight:700;color:#922B21;margin-bottom:4px;}
+  .alerta-bloqueio-hist-item{font-size:0.78rem;color:var(--cinza-texto);padding:2px 0;}
+
+  /* ── FOTO FAMÍLIA ────────────────────────────────────── */
+  .foto-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;border:2px dashed var(--cinza-medio);border-radius:var(--radius);cursor:pointer;transition:border-color 0.2s;}
+  .foto-wrap:hover{border-color:var(--vermelho);}
+  .foto-preview{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--vermelho);display:none;}
+  .foto-placeholder{width:100px;height:100px;border-radius:50%;background:var(--cinza-claro);display:flex;align-items:center;justify-content:center;font-size:2.2rem;color:var(--cinza-texto);}
+  .foto-acoes{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  .foto-acoes .btn{font-size:0.78rem;padding:6px 12px;}
+  .foto-loading{font-size:0.78rem;color:var(--cinza-texto);margin-top:4px;display:none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="tela-login">
+  <div class="login-box">
+    <div style="margin:0 auto 18px;display:flex;justify-content:center;"><img src="data:image/png;base64,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" width="80" height="80" alt="Logo Cáritas"></div>
+    <div class="login-titulo">Cáritas Diocese de Franca</div>
+    <div class="login-sub">Sistema de Cadastro de Famílias<br><strong>Cáritas Gestão de Cestas Básicas</strong></div>
+            <select id="login-paroquia" onchange="aoSelecionarParoquia()">
+      <option value="">Selecione sua paróquia</option>
+      <option value="__admin__">▸ Administração Diocese (Admin)</option>
+
+      <optgroup label="── Forania Beata Rita Amada de Jesus ──">
+        <option>Paróquia Nossa Senhora Aparecida (Pedregulho-SP)</option>
+        <option>Paróquia Nossa Senhora do Carmo (Ituverava-SP)</option>
+        <option>Paróquia Nossa Senhora do Patrocínio (Buritizal-SP)</option>
+        <option>Paróquia Nossa Senhora do Patrocínio (Patrocínio Paulista-SP)</option>
+        <option>Paróquia Santa Rita de Cássia (Igarapava-SP)</option>
+        <option>Paróquia Santo Antônio (Aramina-SP)</option>
+        <option>Paróquia Santo Antônio (Rifaina-SP)</option>
+        <option>Paróquia São João Batista (Ituverava-SP)</option>
+        <option>Paróquia São Sebastião (Jeriquara-SP)</option>
+      </optgroup>
+
+      <optgroup label="── Forania Nossa Senhora Aparecida ──">
+        <option>Paróquia Nossa Senhora Aparecida (Itirapuã-SP)</option>
+        <option>Paróquia Nossa Senhora Aparecida - Capelinha (Franca-SP)</option>
+        <option>Paróquia Nossa Senhora da Guia (Franca-SP)</option>
+        <option>Paróquia Sagrada Família (Franca-SP)</option>
+        <option>Paróquia Sagrado Coração de Jesus (Franca-SP)</option>
+        <option>Paróquia Sant'Ana (Franca-SP)</option>
+        <option>Paróquia Santa Rita de Cássia (Franca-SP)</option>
+        <option>Paróquia São Francisco de Assis (Franca-SP)</option>
+        <option>Paróquia São João Batista (Franca-SP)</option>
+        <option>Paróquia São Pedro (Franca-SP)</option>
+      </optgroup>
+
+      <optgroup label="── Forania Nossa Senhora da Conceição ──">
+        <option>Paróquia Menino Jesus de Praga e Santa Ifigênia (Franca-SP)</option>
+        <option>Paróquia Nossa Senhora Aparecida (Restinga-SP)</option>
+        <option>Paróquia Nossa Senhora das Graças (Franca-SP)</option>
+        <option>Paróquia Santa Luzia (Franca-SP)</option>
+        <option>Paróquia São Sebastião (Franca-SP)</option>
+        <option>Santuário Diocesano Santo Antônio (Franca-SP)</option>
+        <option>Sé Catedral Nossa Senhora da Conceição (Franca-SP)</option>
+      </optgroup>
+
+      <optgroup label="── Forania Santa Gianna ──">
+        <option>Paróquia Nossa Senhora da Abadia (Cristais Paulista-SP)</option>
+        <option>Paróquia Nossa Senhora Rosa Mística (Franca-SP)</option>
+        <option>Paróquia Santa Cruz (Ribeirão Corrente-SP)</option>
+        <option>Paróquia Santa Edwiges (Franca-SP)</option>
+        <option>Paróquia Santa Gianna (Franca-SP)</option>
+        <option>Paróquia Santa Mônica (Franca-SP)</option>
+        <option>Paróquia Santa Teresinha (Franca-SP)</option>
+        <option>Paróquia São Benedito (Franca-SP)</option>
+        <option>Paróquia São Crispim (Franca-SP)</option>
+        <option>Paróquia São Judas Tadeu (Franca-SP)</option>
+        <option>Paróquia São Vicente de Paulo (Franca-SP)</option>
+      </optgroup>
+
+      <optgroup label="── Forania São Joaquim ──">
+        <option>Paróquia Divino Espírito Santo (Nuporanga-SP)</option>
+        <option>Paróquia Nossa Senhora Aparecida (São Joaquim da Barra-SP)</option>
+        <option>Paróquia Nosso Senhor Jesus Cristo Rei do Universo (Orlândia-SP)</option>
+        <option>Paróquia Santa Rita de Cássia (Sales Oliveira-SP)</option>
+        <option>Paróquia São Joaquim (São Joaquim da Barra-SP)</option>
+        <option>Paróquia São José (Orlândia-SP)</option>
+        <option>Paróquia São José (São José da Bela Vista-SP)</option>
+        <option>Paróquia São Sebastião e Santo Antônio (Guará-SP)</option>
+      </optgroup>
+    </select>
+    <!-- Seletor de nome (paróquia) ou campo texto (admin) -->
+    <div id="login-campo-usuario" style="display:none;">
+      <select id="login-usuario-select" style="width:100%;padding:11px 14px;border:1.5px solid var(--cinza-medio);border-radius:var(--radius);font-size:0.95rem;margin-bottom:12px;outline:none;color:var(--preto-suave);">
+        <option value="">Selecione seu nome</option>
+      </select>
+    </div>
+    <div id="login-campo-usuario-admin" style="display:none;">
+      <input type="text" id="login-usuario-texto" placeholder="Usuário" autocomplete="off" style="width:100%;padding:11px 14px;border:1.5px solid var(--cinza-medio);border-radius:var(--radius);font-size:0.95rem;margin-bottom:12px;outline:none;color:var(--preto-suave);">
+    </div>
+    <div id="login-carregando" style="display:none;font-size:0.82rem;color:var(--cinza-texto);margin-bottom:10px;text-align:left;">Carregando usuários...</div>
+    <div class="senha-wrap">
+      <input type="password" id="login-senha" placeholder="Senha">
+      <button type="button" class="btn-olho" onclick="toggleSenha()" title="Mostrar/ocultar senha" aria-label="Mostrar senha">
+        <svg id="icone-olho" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+    <div class="login-erro" id="login-erro"></div>
+    <div id="whatsapp-compartilhar" style="display:none;margin-top:18px;">
+      <a id="whatsapp-link" href="#" target="_blank"
+         style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.88rem;font-weight:600;text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Compartilhar link desta paróquia
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="tela-app">
+  <div class="topbar">
+    <div class="topbar-esq">
+      <span style="font-size:1.4rem;">✚</span>
+      <div>
+        <div class="topbar-titulo">Cáritas Gestão de Cestas Básicas</div>
+        <div class="topbar-paroquia" id="topbar-paroquia-nome"></div>
+      </div>
+    </div>
+    <div class="topbar-dir">
+      <span class="badge-nivel" id="topbar-nivel"></span>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
+
+  <div class="abas">
+    <button class="aba ativa" onclick="mudarAba('familias')" id="aba-familias">👨‍👩‍👧 Famílias</button>
+    <button class="aba" onclick="mudarAba('entregas')" id="aba-entregas">📦 Registrar Entrega</button>
+    <button class="aba" onclick="mudarAba('historico')" id="aba-historico">📋 Histórico</button>
+    <button class="aba" onclick="mudarAba('estoque')" id="aba-estoque">🧺 Estoque</button>
+    <button class="aba" onclick="mudarAba('agentes')" id="aba-agentes" style="display:none">👥 Agentes</button>
+    <button class="aba" onclick="mudarAba('painel')" id="aba-painel" style="display:none">📊 Painel Diocese</button>
+    <button class="aba" onclick="mudarAba('chat')" id="aba-chat">💬 Chat<span class="chat-badge" id="chat-badge">!</span></button>
+    <button class="aba" onclick="mudarAba('config')" id="aba-config">⚙️ Config</button>
+  </div>
+
+  <div class="conteudo">
+
+    <!-- FAMÍLIAS -->
+    <div class="secao ativa" id="secao-familias">
+      <div class="secao-header">
+        <h2 style="font-size:1.15rem;font-weight:700;">Famílias Cadastradas</h2>
+        <button class="btn btn-primario" onclick="abrirModalFamilia()">+ Nova Família</button>
+      </div>
+      <div class="busca-wrap">
+        <input class="busca-input" type="text" id="busca-familia" placeholder="Buscar por nome ou CPF..." oninput="renderFamilias()">
+        <label class="checkbox-inativo"><input type="checkbox" id="mostrar-inativos" onchange="renderFamilias()"> Mostrar inativas</label>
+      </div>
+      <div class="tabela-wrap" id="tabela-familias-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>CPF</th><th>Bairro</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-familias"></tbody>
+        </table>
+      </div>
+      <div id="lista-familias-cards" style="display:none;"></div>
+    </div>
+
+    <!-- ENTREGAS -->
+    <div class="secao" id="secao-entregas">
+      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Registrar Entrega de Cesta</h2>
+      <div class="tabela-wrap" style="padding:20px;">
+        <div class="form-grupo" style="margin-bottom:14px;">
+          <label>Buscar família pelo nome ou CPF</label>
+          <input type="text" id="entrega-busca" placeholder="Digite nome ou CPF..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+        </div>
+        <div id="entrega-resultado"></div>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="secao" id="secao-historico">
+      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Histórico de Entregas</h2>
+      <div class="filtro-linha">
+        <input type="month" id="filtro-mes-hist" onchange="renderHistorico()">
+        <input class="busca-input" type="text" id="busca-historico" placeholder="Buscar família..." oninput="renderHistorico()" style="min-width:180px;">
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Responsável</th><th>Observação</th></tr></thead>
+          <tbody id="tabela-historico"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AGENTES -->
+    <div class="secao" id="secao-agentes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-size:1.15rem;font-weight:700;" id="titulo-agentes">Usuários da Paróquia</h2>
+        <button class="btn btn-primario" onclick="abrirModalAgente()" id="btn-novo-agente">+ Novo Usuário</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th id="th-paroquia-agente" style="display:none;">Paróquia</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-agentes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAINEL DIOCESE -->
+    <div class="secao" id="secao-painel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-size:1.15rem;font-weight:700;">Painel Diocese — Visão Geral</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="month" id="painel-mes" onchange="renderPainel()">
+          <button class="btn btn-verde btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</button>
+        </div>
+      </div>
+      <div class="busca-wrap" style="margin-bottom:20px;">
+        <input class="busca-input" type="text" id="busca-global" placeholder="Busca global por nome ou CPF..." oninput="buscaGlobal()" style="min-width:280px;">
+      </div>
+      <div id="resultado-busca-global" style="display:none;" class="tabela-wrap">
+        <div class="tabela-header"><h3>Resultados da Busca Global</h3></div>
+        <table><thead><tr><th>Nome</th><th>CPF</th><th>Paróquia</th><th>Pessoas</th><th>Status</th></tr></thead>
+        <tbody id="tabela-busca-global"></tbody></table>
+      </div>
+      <div class="cards-resumo" id="painel-cards"></div>
+      <div class="painel-secao">
+        <div class="painel-secao-titulo">Resumo por Paróquia</div>
+        <div class="tabela-wrap">
+          <table>
+            <thead><tr><th>Paróquia</th><th>Famílias ativas</th><th>Entregas no mês</th><th>Pessoas atendidas</th><th>Famílias inativas</th></tr></thead>
+            <tbody id="tabela-paroquias"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="painel-secao">
+        <div class="painel-secao-titulo">Top 10 Famílias com Mais Entregas</div>
+        <div class="tabela-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Família</th><th>Paróquia</th><th>Total de Cestas</th></tr></thead>
+            <tbody id="tabela-top-familias"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTOQUE -->
+    <div class="secao" id="secao-estoque">
+      <div class="secao-header">
+        <h2 style="font-size:1.15rem;font-weight:700;">🧺 Estoque de Cestas</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="estoque-botoes">
+          <button class="btn btn-secundario" id="btn-lancar-estoque" onclick="abrirModalEstoque()">+ Lançar Recebimento</button>
+          <button class="btn btn-primario" id="btn-compartilhar-estoque" onclick="abrirModalCompartilhar()">🤝 Definir disponível p/ compartilhar</button>
+        </div>
+      </div>
+
+      <!-- Resumo próprio: saldo interno + compartilhável -->
+      <div id="estoque-resumo-proprio" style="display:none;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
+      </div>
+
+      <!-- Painel de compartilhamento — visível para TODAS as paróquias -->
+      <div class="painel-secao">
+        <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
+        <div class="tabela-wrap" id="estoque-tabela-wrap">
+          <table>
+            <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Atualizado em</th></tr></thead>
+            <tbody id="tabela-estoque-paroquias"></tbody>
+          </table>
+        </div>
+        <div id="estoque-cards-mobile"></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="secao" id="secao-chat">
+      <div id="chat-sem-firebase" class="chat-sem-firebase" style="display:none;">
+        <div style="font-size:2rem;margin-bottom:10px;">🔌</div>
+        <p>O chat requer conexão com o Firebase.<br>Vá em <strong>⚙️ Config</strong> e conecte o banco de dados.</p>
+      </div>
+      <div id="chat-com-firebase">
+
+        <!-- Abas Geral / Privado -->
+        <div class="chat-abas">
+          <button class="chat-aba ativa" id="chat-aba-geral" onclick="mudarChatAba('geral')">🌐 Geral</button>
+          <button class="chat-aba" id="chat-aba-privado" onclick="mudarChatAba('privado')">
+            🔒 Privado<span class="chat-priv-badge" id="priv-badge" style="display:none"></span>
+          </button>
+        </div>
+
+        <!-- PAINEL GERAL -->
+        <div id="chat-painel-geral">
+          <div class="secao-header" style="margin-bottom:12px;">
+            <span style="font-size:0.88rem;color:var(--cinza-texto);">Visível para todas as paróquias</span>
+            <button class="btn btn-secundario btn-sm" onclick="abrirAnexoChat()">📎 Anexar obs.</button>
+          </div>
+          <div class="chat-wrap">
+            <div class="chat-msgs" id="chat-msgs">
+              <div class="vazio"><div class="vazio-icone">💬</div><p>Nenhuma mensagem ainda.</p></div>
+            </div>
+            <div class="chat-input-area">
+              <div class="chat-anexo-preview" id="chat-anexo-preview">
+                <span id="chat-anexo-texto">—</span>
+                <button class="btn btn-sm btn-secundario" onclick="removerAnexoChat()">✕</button>
+              </div>
+              <div class="chat-input-linha">
+                <textarea id="chat-input" placeholder="Mensagem para toda a diocese..." rows="2"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagem();}"></textarea>
+                <button class="btn btn-primario" onclick="enviarMensagem()">Enviar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAINEL PRIVADO -->
+        <div id="chat-painel-privado" style="display:none;">
+
+          <!-- Lista de conversas -->
+          <div id="chat-privado-lista">
+            <div class="secao-header" style="margin-bottom:12px;">
+              <span style="font-size:0.88rem;color:var(--cinza-texto);">Suas conversas privadas</span>
+              <button class="btn btn-primario btn-sm" onclick="abrirNovaConversa()">+ Nova conversa</button>
+            </div>
+            <div id="chat-lista-conversas" class="chat-lista-privados">
+              <div class="vazio"><div class="vazio-icone">🔒</div><p>Nenhuma conversa ainda.</p></div>
+            </div>
+          </div>
+
+          <!-- Janela de conversa individual -->
+          <div id="chat-privado-conversa" style="display:none;">
+            <div class="chat-volta">
+              <button onclick="voltarListaConversas()">← Voltar</button>
+              <span class="chat-destinatario" id="chat-dest-nome"></span>
+            </div>
+            <div class="chat-wrap">
+              <div class="chat-msgs" id="chat-msgs-priv">
+                <div class="vazio"><div class="vazio-icone">💬</div><p>Início da conversa.</p></div>
+              </div>
+              <div class="chat-input-area">
+                <div class="chat-input-linha">
+                  <textarea id="chat-input-priv" placeholder="Mensagem privada..." rows="2"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagemPrivada();}"></textarea>
+                  <button class="btn btn-primario" onclick="enviarMensagemPrivada()">Enviar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="secao" id="secao-config">
+      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Configurações — Firebase</h2>
+      <div class="config-box">
+        <div id="status-firebase" class="aviso aviso-info" style="margin-bottom:14px;">Verificando conexão...</div>
+        <div class="form-grupo" style="margin-bottom:14px;">
+          <label>Cole o JSON de configuração do Firebase</label>
+          <textarea id="firebase-json" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...",...}'></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primario" onclick="conectarFirebase()">Conectar ao Firebase</button>
+          <button class="btn btn-secundario" onclick="usarLocalStorage()">Usar apenas local</button>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--cinza-medio);font-size:0.8rem;color:var(--cinza-texto);">
+          <strong>Config padrão do projeto:</strong><br>
+          Projeto: <code>caritascestasbasicas</code><br><br>
+          Se perder conexão: <strong>F12 → Aplicativo → Armazenamento → Remover dados do site → F5</strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL FAMÍLIA -->
+<div class="modal-overlay" id="modal-familia">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-familia-titulo">Nova Família</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-familia')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alerta-duplicata" id="alerta-duplicata">
+        ⚠️ Endereço similar já cadastrado — verifique se não é duplicata.<br>
+        <span id="alerta-duplicata-detalhe" style="font-size:0.82rem;opacity:0.85;"></span>
+      </div>
+      <div class="form-grid">
+        <div class="form-grupo full"><label>Nome completo *</label><input type="text" id="f-nome" placeholder="Nome da família / responsável"></div>
+        <div class="form-grupo"><label>CPF *</label><input type="text" id="f-cpf" placeholder="000.000.000-00" oninput="formatarCPF(this)" maxlength="14"></div>
+        <div class="form-grupo"><label>NIS / CadÚnico</label><input type="text" id="f-nis" placeholder="Número NIS"></div>
+        <div class="form-grupo"><label>Telefone</label><input type="text" id="f-telefone" placeholder="(00) 00000-0000"></div>
+        <div class="form-grupo"><label>Nº pessoas na família *</label><input type="number" id="f-pessoas" min="1" value="1"></div>
+        <div class="form-grupo full"><label>Rua / Logradouro *</label><input type="text" id="f-endereco" placeholder="Ex: Rua das Flores" oninput="verificarDuplicataEndereco()"></div>
+        <div class="form-grupo"><label>Número *</label><input type="text" id="f-numero" placeholder="Ex: 123"></div>
+        <div class="form-grupo"><label>Apartamento / Complemento</label><input type="text" id="f-apto" placeholder="Ex: Apto 42, Bloco B"></div>
+        <div class="form-grupo"><label>Bairro</label><input type="text" id="f-bairro" placeholder="Bairro"></div>
+        <div class="form-grupo" id="grupo-f-capela" style="display:none;"><label>Capela / Comunidade</label>
+          <select id="f-capela"></select>
+        </div>
+        <div class="form-grupo"><label>Cidade</label><input type="text" id="f-cidade" placeholder="Cidade"></div>
+        <div class="form-grupo"><label>Renda familiar (R$)</label><input type="number" id="f-renda" placeholder="0" step="0.01" min="0"></div>
+        <div class="form-grupo"><label>Situação moradia</label>
+          <select id="f-moradia"><option value="">Selecione</option><option>Própria</option><option>Alugada</option><option>Cedida</option><option>Irregular</option></select>
+        </div>
+        <div class="form-grupo full"><label>Observações</label><input type="text" id="f-obs" placeholder="Informações relevantes"></div>
+        <div class="form-grupo full">
+          <label>Foto (opcional)</label>
+          <div class="foto-wrap" onclick="document.getElementById('f-foto-input').click()">
+            <img id="f-foto-preview" class="foto-preview" alt="Foto da família">
+            <div class="foto-placeholder" id="f-foto-placeholder">📷</div>
+            <div class="foto-acoes" onclick="event.stopPropagation()">
+              <button type="button" class="btn btn-secundario" onclick="document.getElementById('f-foto-input').click()">📷 Câmera / Galeria</button>
+              <button type="button" class="btn btn-secundario" id="f-foto-remover" style="display:none" onclick="removerFoto()">✕ Remover</button>
+            </div>
+            <span class="foto-loading" id="f-foto-loading">Enviando foto...</span>
+          </div>
+          <input type="file" id="f-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+          <input type="hidden" id="f-foto-url">
+        </div>
+      </div>
+      <input type="hidden" id="f-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-familia')">Cancelar</button>
+      <button class="btn btn-primario" onclick="salvarFamilia()">Salvar Família</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESTOQUE -->
+<div class="modal-overlay" id="modal-estoque">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Lançar Recebimento de Cestas</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-estoque')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="aviso aviso-info" style="margin-bottom:14px;">
+        Informe quantas cestas sua paróquia <strong>recebeu</strong> neste lote. O valor será <strong>somado</strong> ao saldo atual.
+      </div>
+      <div class="form-grupo" style="margin-bottom:14px;">
+        <label>Quantidade de cestas recebidas *</label>
+        <input type="number" id="estoque-qtd" min="1" placeholder="Ex: 50" style="font-size:1.1rem;padding:12px;">
+      </div>
+      <div class="form-grupo" id="grupo-estoque-capela" style="display:none;">
+        <label>Cape la / Comunidade de destino (opcional)</label>
+        <select id="estoque-capela"></select>
+      </div>
+      <div class="form-grupo">
+        <label>Observação (opcional)</label>
+        <input type="text" id="estoque-obs" placeholder="Ex: Doação CRAS, Campanha Páscoa...">
+      </div>
+      <div id="estoque-saldo-atual-modal" style="margin-top:14px;font-size:0.88rem;color:var(--cinza-texto);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-estoque')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarLancamentoEstoque()">✅ Confirmar Recebimento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMPARTILHAR ESTOQUE -->
+<div class="modal-overlay" id="modal-compartilhar">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🤝 Cestas para Compartilhar</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-compartilhar')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="aviso aviso-info" style="margin-bottom:16px;">
+        Defina quantas cestas do seu estoque você disponibiliza para outras paróquias.
+        Esse número aparece no painel de todas as paróquias da diocese.
+      </div>
+      <div id="compartilhar-saldo-info" style="margin-bottom:16px;font-size:0.88rem;color:var(--cinza-texto);"></div>
+      <div class="form-grupo" style="margin-bottom:14px;">
+        <label>Cestas disponíveis para compartilhar *</label>
+        <input type="number" id="compartilhar-qtd" min="0" placeholder="Ex: 10" style="font-size:1.1rem;padding:12px;">
+      </div>
+      <div class="form-grupo" id="grupo-comp-capela" style="display:none;">
+        <label>Cape la / Comunidade de origem (opcional)</label>
+        <select id="comp-capela"></select>
+      </div>
+      <div class="form-grupo">
+        <label>Observação (opcional)</label>
+        <input type="text" id="compartilhar-obs" placeholder="Ex: Disponível até sexta-feira...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-compartilhar')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarCompartilhamento()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER FAMÍLIA -->
+<div class="modal-overlay" id="modal-ver-familia">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Detalhes da Família</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-ver-familia')">×</button>
+    </div>
+    <div class="modal-body" id="modal-ver-familia-body"></div>
+    <div class="modal-footer" id="modal-ver-familia-footer"></div>
+  </div>
+</div>
+
+<!-- MODAL AGENTE -->
+<div class="modal-overlay" id="modal-agente">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-agente-titulo">Novo Usuário</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-agente')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-grupo full"><label>Nome *</label><input type="text" id="a-nome" placeholder="Nome completo"></div>
+        <div class="form-grupo"><label>Usuário *</label><input type="text" id="a-usuario" placeholder="login de acesso"></div>
+        <div class="form-grupo"><label>Senha *</label><input type="password" id="a-senha" placeholder="senha"></div>
+        <div class="form-grupo" id="grupo-a-nivel"><label>Nível</label>
+          <select id="a-nivel">
+            <option value="responsavel">Responsável (Admin paróquia)</option>
+            <option value="agente">Agente (entrada de dados)</option>
+          </select>
+        </div>
+        <div class="form-grupo full" id="grupo-a-paroquia" style="display:none;">
+          <label>Paróquia *</label>
+          <select id="a-paroquia"></select>
+        </div>
+      </div>
+      <div class="form-grupo full" id="grupo-a-capela" style="display:none;">
+        <label>Capela / Comunidade (opcional)</label>
+        <select id="a-capela"></select>
+      </div>
+      <input type="hidden" id="a-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-agente')">Cancelar</button>
+      <button class="btn btn-primario" onclick="salvarAgente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR -->
+<div class="modal-overlay" id="modal-bloqueio">
+  <div class="modal">
+    <div class="modal-header" style="background:#C0392B;">
+      <h2 style="color:#fff;">🚫 Cadastro Bloqueado</h2>
+      <button class="modal-fechar" style="color:#fff;" onclick="fecharModal('modal-bloqueio')">×</button>
+    </div>
+    <div class="modal-body" id="modal-bloqueio-corpo"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primario" onclick="fecharModal('modal-bloqueio')">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-confirmar">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h2 id="modal-confirmar-titulo">Confirmar</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-confirmar')">×</button>
+    </div>
+    <div class="modal-body"><p id="modal-confirmar-msg" style="font-size:0.92rem;line-height:1.6;"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-confirmar')">Cancelar</button>
+      <button class="btn btn-perigo" id="modal-confirmar-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+// =====================================================
+// DOMINGO FRATERNO v1.4 — Cáritas Diocese de Franca
+// =====================================================
+
+const CAPELAS_POR_PAROQUIA = {"Paróquia Santo Antônio (Aramina-SP)": ["Capela Nossa Senhora Aparecida", "Comunidade Brejão", "Comunidade dos Três Reis"], "Paróquia Nossa Senhora do Patrocínio (Buritizal-SP)": [], "Paróquia Santa Rita de Cássia (Igarapava-SP)": ["Capela Nossa Senhora da Abadia", "Capela Santa Cruz", "Capela Santo Antônio", "Capela São Geraldo", "Comunidade Nossa Senhora das Graças", "Comunidade Santo Ezequiel Moreno", "Comunidade Santo Frei Galvão", "Comunidade São Bento"], "Paróquia Nossa Senhora do Carmo (Ituverava-SP)": ["Capela Nossa Senhora Aparecida", "Capela Nossa Senhora do Rosário", "Capela São Benedito", "Capela São Pedro e São Paulo", "Comunidade Aparecida do Salto", "Comunidade Capivari da Mata"], "Paróquia São João Batista (Ituverava-SP)": ["Capela Imaculada Conceição", "Capela Sagrado Coração de Jesus"], "Paróquia São Sebastião (Jeriquara-SP)": [], "Paróquia Nossa Senhora do Patrocínio (Patrocínio Paulista-SP)": ["Capela Santa Cruz", "Capela São Sebastião", "Comunidade da Cachoeira", "Comunidade do Lambari", "Comunidade do Palmital"], "Paróquia Nossa Senhora Aparecida (Pedregulho-SP)": ["Capela Nossa Senhora das Graças", "Capela Sagrada Família", "Capela São Benedito", "Capela São Francisco de Assis", "Capela São Pedro", "Capela São Sebastião"], "Paróquia Santo Antônio (Rifaina-SP)": [], "Paróquia Nossa Senhora Aparecida (Itirapuã-SP)": ["Capela São Sebastião", "Lar São Francisco (Asilo)"], "Paróquia Nossa Senhora Aparecida - Capelinha (Franca-SP)": ["Capela Divino Pai Eterno", "Capela Nossa Senhora da Penha", "Capela Nossa Senhora das Dores", "Capela Santa Marta", "Capela São Francisco Xavier", "Capela São José", "Capela São Mateus", "Capela São Roque", "Capela Senhora de Fátima"], "Paróquia Nossa Senhora da Guia (Franca-SP)": [], "Paróquia Sagrada Família (Franca-SP)": ["Capela Nossa Senhora de Guadalupe", "Capela Santa Clara", "Capela Santa Maria dos Anjos"], "Paróquia Sagrado Coração de Jesus (Franca-SP)": ["Capela Divino Espírito Santo", "Capela São Francisco de Assis", "Capela São Geraldo Magela", "Capela São Lucas", "Capela São Paulo"], "Paróquia Sant'Ana (Franca-SP)": [], "Paróquia Santa Rita de Cássia (Franca-SP)": ["Capela Nossa Senhora de Lourdes", "Capela São José Operário"], "Paróquia São Francisco de Assis (Franca-SP)": ["Capela Sagrado Coração de Jesus"], "Paróquia São João Batista (Franca-SP)": ["Capela Nossa Senhora do Carmo", "Capela Santa Dorothea", "Capela São Cristóvão"], "Paróquia São Pedro (Franca-SP)": ["Capela Santa Teresinha do Menino Jesus", "Capela São João Paulo II"], "Paróquia Menino Jesus de Praga e Santa Ifigênia (Franca-SP)": ["Capela Divino Pai Eterno"], "Paróquia Nossa Senhora das Graças (Franca-SP)": [], "Paróquia Nossa Senhora Aparecida (Restinga-SP)": [], "Paróquia Santa Luzia (Franca-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Rafael"], "Paróquia São Sebastião (Franca-SP)": [], "Santuário Diocesano Santo Antônio (Franca-SP)": [], "Sé Catedral Nossa Senhora da Conceição (Franca-SP)": [], "Paróquia Nossa Senhora da Abadia (Cristais Paulista-SP)": ["Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Rita", "Capela São José"], "Paróquia Nossa Senhora Rosa Mística (Franca-SP)": ["Capela Santo Antônio de Santana Galvão (Frei Galvão)"], "Paróquia Santa Cruz (Ribeirão Corrente-SP)": ["Capela Nossa Senhora das Graças"], "Paróquia Santa Edwiges (Franca-SP)": ["Capela Santa Paulina", "Comunidade Jesus Misericordioso"], "Paróquia Santa Gianna (Franca-SP)": ["Capela Nossa Senhora Auxiliadora", "Capela Nossa Senhora de Fátima", "Capela Nossa Senhora do Carmo", "Capela Nossa Senhora do Rosário"], "Paróquia Santa Mônica (Franca-SP)": [], "Paróquia Santa Teresinha (Franca-SP)": ["Capela Santo Tomás de Aquino"], "Paróquia São Benedito (Franca-SP)": ["Capela Nossa Senhora do Sagrado Coração"], "Paróquia São Crispim (Franca-SP)": ["Capela São Miguel"], "Paróquia São Judas Tadeu (Franca-SP)": [], "Paróquia São Vicente de Paulo (Franca-SP)": ["Capela Santo Expedito"], "Paróquia Divino Espírito Santo (Nuporanga-SP)": ["Capela Nossa Senhora Aparecida"], "Paróquia Nossa Senhora Aparecida (São Joaquim da Barra-SP)": ["Capela São José", "Comunidade Santa Terezinha", "Comunidade São João Batista"], "Paróquia Nosso Senhor Jesus Cristo Rei do Universo (Orlândia-SP)": ["Comunidade Santa Zita e Santo Antônio", "Igreja Santa Rita"], "Paróquia Santa Rita de Cássia (Sales Oliveira-SP)": ["Capela São José"], "Paróquia São Joaquim (São Joaquim da Barra-SP)": ["Capela Santo Hilário (Rural)"], "Paróquia São José (Orlândia-SP)": ["Capela do Cemitério", "Capela do Hospital Beneficente Santo Antônio", "Capela Mãe Rainha", "Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Genoveva", "Capela São Francisco de Assis", "Capela São João Batista"], "Paróquia São José (São José da Bela Vista-SP)": ["Capela Nossa Senhora de Fátima"], "Paróquia São Sebastião e Santo Antônio (Guará-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Pedro", "Capela Senhor Bom Jesus da Lapa", "Centro Catequético Santa Rita"]};
+
+function getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia) {
+  const lista = CAPELAS_POR_PAROQUIA[paroquia] || [];
+  if (!lista.length) return null; // paróquia sem capelas cadastradas
+  let opts = incluirVazia ? `<option value="">${labelVazia || '— Apenas matriz —'}</option>` : '';
+  opts += lista.map(cap =>
+    `<option${selectedValue === cap ? ' selected' : ''}>${cap}</option>`
+  ).join('');
+  return opts;
+}
+
+function atualizarSelectCapela(paroquia, selectId, selectedValue, incluirVazia, labelVazia) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const opts = getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia);
+  const grupo = sel.closest('.form-grupo');
+  if (!opts) {
+    if (grupo) grupo.style.display = 'none';
+    sel.innerHTML = '';
+    return;
+  }
+  if (grupo) grupo.style.display = '';
+  sel.innerHTML = opts;
+}
+
+// ---------- ESTADO GLOBAL ----------
+let usuarioAtual = null;
+let db = null;
+let usandoFirebase = false;
+let familias = [];
+let entregas = [];
+let agentes = [];
+let estoques = {}; // { paroquia: { saldo, ultimaAtualizacao, responsavel } }
+
+// ---------- USUÁRIOS PADRÃO ----------
+const usuariosPadrao = [
+  { usuario: 'admin', senha: 'caritas2026', nivel: 'admin', nome: 'Administrador Diocese', paroquia: '__admin__' }
+];
+
+// ---------- LOGIN ----------
+function aoSelecionarParoquia() {
+  const paroquia = document.getElementById('login-paroquia').value;
+  const campoSelect = document.getElementById('login-campo-usuario');
+  const campoAdmin = document.getElementById('login-campo-usuario-admin');
+  const carregando = document.getElementById('login-carregando');
+  const sel = document.getElementById('login-usuario-select');
+  document.getElementById('login-erro').style.display = 'none';
+
+  // Atualizar botão WhatsApp
+  const divWpp = document.getElementById('whatsapp-compartilhar');
+  const linkWpp = document.getElementById('whatsapp-link');
+  if (paroquia && paroquia !== '__admin__') {
+    const urlBase = window.location.href.split('?')[0];
+    const urlComParoquia = urlBase + '?paroquia=' + encodeURIComponent(paroquia);
+    const texto = 'Acesse o sistema Cáritas — Gestão de Cestas Básicas pelo link abaixo. Sua paróquia já estará selecionada:\n' + urlComParoquia;
+    linkWpp.href = 'https://wa.me/?text=' + encodeURIComponent(texto);
+    divWpp.style.display = 'block';
+  } else {
+    divWpp.style.display = 'none';
+  }
+
+  if (!paroquia) {
+    campoSelect.style.display = 'none';
+    campoAdmin.style.display = 'none';
+    return;
+  }
+
+  if (paroquia === '__admin__') {
+    campoSelect.style.display = 'none';
+    campoAdmin.style.display = '';
+    return;
+  }
+
+  // Paróquia selecionada: carregar usuários
+  campoAdmin.style.display = 'none';
+  campoSelect.style.display = '';
+  sel.innerHTML = '<option value="">Selecione seu nome</option>';
+  carregando.style.display = 'block';
+
+  function preencherSelect(usuarios) {
+    carregando.style.display = 'none';
+    if (!usuarios.length) {
+      sel.innerHTML = '<option value="">Nenhum usuário cadastrado nesta paróquia</option>';
+      return;
+    }
+    // Ordenar: responsáveis primeiro
+    usuarios.sort((a,b) => {
+      if (a.nivel !== b.nivel) return a.nivel === 'responsavel' ? -1 : 1;
+      return a.nome.localeCompare(b.nome);
+    });
+    sel.innerHTML = '<option value="">Selecione seu nome</option>' +
+      usuarios.map(u => `<option value="${esc(u.usuario)}">${esc(u.nome)}${u.nivel === 'responsavel' ? ' (Responsável)' : ''}</option>`).join('');
+  }
+
+  if (usandoFirebase && db) {
+    db.collection('agentes').where('paroquia', '==', paroquia).get()
+      .then(snap => preencherSelect(snap.docs.map(d => d.data())))
+      .catch(() => { carregando.style.display = 'none'; });
+  } else {
+    const lista = JSON.parse(localStorage.getItem('df_agentes_' + paroquia) || '[]');
+    preencherSelect(lista);
+  }
+}
+
+function fazerLogin() {
+  const paroquia = document.getElementById('login-paroquia').value;
+  const senha = document.getElementById('login-senha').value;
+  if (!paroquia) { mostrarErroLogin('Selecione sua paróquia.'); return; }
+  if (!senha) { mostrarErroLogin('Digite sua senha.'); return; }
+
+  // Admin: usa campo de texto
+  if (paroquia === '__admin__') {
+    const usuario = document.getElementById('login-usuario-texto').value.trim();
+    if (!usuario) { mostrarErroLogin('Digite o usuário.'); return; }
+    const u = usuariosPadrao.find(u => u.usuario === usuario && u.senha === senha);
+    if (u) { iniciarSessao({ ...u }); return; }
+    mostrarErroLogin('Usuário ou senha incorretos.');
+    return;
+  }
+
+  // Paróquia: usa select de nome
+  const usuarioSel = document.getElementById('login-usuario-select').value;
+  if (!usuarioSel) { mostrarErroLogin('Selecione seu nome.'); return; }
+
+  // Verificar localStorage
+  const agentesLocal = JSON.parse(localStorage.getItem('df_agentes_' + paroquia) || '[]');
+  const agente = agentesLocal.find(a => a.usuario === usuarioSel && a.senha === senha);
+  if (agente) { iniciarSessao(agente); return; }
+
+  // Verificar Firebase
+  if (usandoFirebase && db) {
+    db.collection('agentes').where('usuario', '==', usuarioSel).where('paroquia', '==', paroquia).get()
+      .then(snap => {
+        if (!snap.empty) {
+          const doc = snap.docs[0].data();
+          if (doc.senha === senha) { iniciarSessao({ id: snap.docs[0].id, ...doc }); return; }
+        }
+        mostrarErroLogin('Senha incorreta.');
+      }).catch(() => mostrarErroLogin('Erro ao verificar credenciais.'));
+    return;
+  }
+
+  mostrarErroLogin('Senha incorreta.');
+}
+
+function mostrarErroLogin(msg) {
+  const el = document.getElementById('login-erro');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function iniciarSessao(u) {
+  usuarioAtual = u;
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('tela-app').style.display = 'flex';
+  carregarEstoquesFirebase();
+  setTimeout(iniciarChat, 1500); // inicia chat em background
+  document.getElementById('topbar-paroquia-nome').textContent = u.paroquia === '__admin__' ? 'Diocese de Franca' : u.paroquia;
+  document.getElementById('topbar-nivel').textContent = u.nivel === 'admin' ? 'Admin' : u.nivel === 'responsavel' ? 'Responsável' : 'Agente';
+
+  // Mostrar abas conforme nível
+  if (u.nivel === 'admin') {
+    document.getElementById('aba-painel').style.display = '';
+    document.getElementById('aba-agentes').style.display = '';
+  } else if (u.nivel === 'responsavel') {
+    document.getElementById('aba-agentes').style.display = '';
+  }
+
+  carregarDados();
+  const mes = new Date().toISOString().slice(0, 7);
+  document.getElementById('filtro-mes-hist').value = mes;
+  document.getElementById('painel-mes').value = mes;
+}
+
+function sair() {
+  if (chatListener) { chatListener(); chatListener = null; }
+  usuarioAtual = null;
+  familias = []; entregas = []; agentes = [];
+  document.getElementById('tela-app').style.display = 'none';
+  document.getElementById('tela-login').style.display = 'flex';
+  document.getElementById('login-paroquia').value = '';
+  document.getElementById('login-senha').value = '';
+  document.getElementById('login-usuario-select').value = '';
+  document.getElementById('login-usuario-texto').value = '';
+  document.getElementById('login-campo-usuario').style.display = 'none';
+  document.getElementById('login-campo-usuario-admin').style.display = 'none';
+  document.getElementById('login-erro').style.display = 'none';
+  mudarAba('familias');
+}
+
+// ---------- ABAS ----------
+function mudarAba(aba) {
+  document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+  document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
+  document.getElementById('secao-' + aba).classList.add('ativa');
+  document.getElementById('aba-' + aba).classList.add('ativa');
+  if (aba === 'familias') renderFamilias();
+  if (aba === 'estoque') renderEstoque();
+  if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
+  if (aba === 'historico') renderHistorico();
+  if (aba === 'agentes') renderAgentes();
+  if (aba === 'painel') renderPainel();
+}
+
+// ---------- DADOS ----------
+function carregarDados() {
+  const chave = 'df_familias_' + (usuarioAtual.paroquia === '__admin__' ? 'todas' : usuarioAtual.paroquia);
+
+  if (usandoFirebase && db) {
+    const qFam = usuarioAtual.nivel === 'admin'
+      ? db.collection('familias')
+      : db.collection('familias').where('paroquia', '==', usuarioAtual.paroquia);
+    qFam.onSnapshot(snap => {
+      familias = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderFamilias();
+      if (document.getElementById('secao-painel').classList.contains('ativa')) renderPainel();
+    });
+
+    const qEnt = usuarioAtual.nivel === 'admin'
+      ? db.collection('entregas')
+      : db.collection('entregas').where('paroquia', '==', usuarioAtual.paroquia);
+    qEnt.onSnapshot(snap => {
+      entregas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderHistorico();
+      if (document.getElementById('secao-painel').classList.contains('ativa')) renderPainel();
+    });
+
+    if (usuarioAtual.nivel !== 'agente') {
+      const qAg = usuarioAtual.nivel === 'admin'
+        ? db.collection('agentes')
+        : db.collection('agentes').where('paroquia', '==', usuarioAtual.paroquia);
+      qAg.onSnapshot(snap => {
+        agentes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAgentes();
+      });
+    }
+  } else {
+    // localStorage
+    if (usuarioAtual.nivel === 'admin') {
+      familias = JSON.parse(localStorage.getItem('df_familias_todas') || '[]');
+      entregas = JSON.parse(localStorage.getItem('df_entregas_todas') || '[]');
+      estoques = JSON.parse(localStorage.getItem('df_estoques') || '{}');
+      agentes = [];
+      LISTA_PAROQUIAS.forEach(p => {
+        const lista = JSON.parse(localStorage.getItem('df_agentes_' + p) || '[]');
+        agentes = agentes.concat(lista);
+      });
+    } else {
+      familias = JSON.parse(localStorage.getItem('df_familias_' + usuarioAtual.paroquia) || '[]');
+      entregas = JSON.parse(localStorage.getItem('df_entregas_' + usuarioAtual.paroquia) || '[]');
+      estoques = JSON.parse(localStorage.getItem('df_estoques') || '{}');
+      agentes = JSON.parse(localStorage.getItem('df_agentes_' + usuarioAtual.paroquia) || '[]');
+    }
+    renderFamilias();
+    renderHistorico();
+    renderAgentes();
+  }
+}
+
+function salvarLocal() {
+  if (usuarioAtual.nivel === 'admin') {
+    localStorage.setItem('df_familias_todas', JSON.stringify(familias));
+    localStorage.setItem('df_entregas_todas', JSON.stringify(entregas));
+    localStorage.setItem('df_estoques', JSON.stringify(estoques));
+  } else {
+    localStorage.setItem('df_familias_' + usuarioAtual.paroquia, JSON.stringify(familias));
+    localStorage.setItem('df_entregas_' + usuarioAtual.paroquia, JSON.stringify(entregas));
+    localStorage.setItem('df_estoques', JSON.stringify(estoques));
+  }
+}
+
+// ---------- FAMÍLIAS ----------
+function getFamiliasFiltradas() {
+  const busca = document.getElementById('busca-familia').value.toLowerCase();
+  const mostrarInativos = document.getElementById('mostrar-inativos').checked;
+  return familias.filter(f => {
+    if (!mostrarInativos && f.inativo) return false;
+    if (busca) {
+      return (f.nome || '').toLowerCase().includes(busca) ||
+             (f.cpf || '').includes(busca);
+    }
+    return true;
+  });
+}
+
+function renderFamilias() {
+  const lista = getFamiliasFiltradas();
+  const tbody = document.getElementById('tabela-familias');
+  const cards = document.getElementById('lista-familias-cards');
+  const isMobile = window.innerWidth <= 640;
+
+  if (!lista.length) {
+    const vazio = `<div class="vazio"><div class="vazio-icone">👨‍👩‍👧</div><p>Nenhuma família encontrada.</p></div>`;
+    tbody.innerHTML = `<tr><td colspan="6">${vazio}</td></tr>`;
+    cards.innerHTML = vazio;
+    return;
+  }
+
+  // Tabela (desktop)
+  tbody.innerHTML = lista.map(f => `
+    <tr style="${f.inativo ? 'opacity:0.55;' : ''}">
+      <td><strong>${esc(f.nome)}</strong></td>
+      <td>${esc(f.cpf || '—')}</td>
+      <td>${esc(f.bairro || '—')}</td>
+      <td>${f.pessoas || 1}</td>
+      <td><span class="badge ${f.inativo ? 'badge-inativo' : 'badge-ativo'}">${f.inativo ? 'Inativa' : 'Ativa'}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secundario btn-sm" onclick="verFamilia('${f.id}')">Ver</button>
+        ${podeEditar() ? `<button class="btn btn-primario btn-sm" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
+        ${podeEditar() ? `<button class="btn btn-sm ${f.inativo ? 'btn-verde' : 'btn-perigo'}" onclick="toggleInativar('${f.id}')">${f.inativo ? 'Reativar' : 'Inativar'}</button>` : ''}
+        ${podeEditar() ? `<button class="btn btn-sm" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
+      </td>
+    </tr>`).join('');
+
+  // Cards (mobile)
+  cards.innerHTML = lista.map(f => `
+    <div class="familia-card" style="${f.inativo ? 'opacity:0.6;' : ''}">
+      <div class="familia-card-nome">${esc(f.nome)} <span class="badge ${f.inativo ? 'badge-inativo' : 'badge-ativo'}" style="font-size:0.7rem;">${f.inativo ? 'Inativa' : 'Ativa'}</span></div>
+      <div class="familia-card-info">
+        <span>📄 ${esc(f.cpf || 'Sem CPF')}</span>
+        <span>📍 ${esc(f.bairro || 'Sem bairro')}</span>
+        <span>👥 ${f.pessoas || 1} pessoa(s)</span>
+      </div>
+      <div class="familia-card-acoes">
+        <button class="btn btn-secundario" onclick="verFamilia('${f.id}')">Ver</button>
+        ${podeEditar() ? `<button class="btn btn-primario" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
+        ${podeEditar() ? `<button class="btn ${f.inativo ? 'btn-verde' : 'btn-perigo'}" onclick="toggleInativar('${f.id}')">${f.inativo ? 'Reativar' : 'Inativar'}</button>` : ''}
+        ${podeEditar() ? `<button class="btn" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
+      </div>
+    </div>`).join('');
+
+  // Alternar visibilidade conforme tamanho da tela
+  const wrap = document.getElementById('tabela-familias-wrap');
+  if (isMobile) {
+    wrap.style.display = 'none';
+    cards.style.display = 'block';
+  } else {
+    wrap.style.display = '';
+    cards.style.display = 'none';
+  }
+}
+
+function podeEditar() {
+  return usuarioAtual.nivel === 'admin' || usuarioAtual.nivel === 'responsavel' || usuarioAtual.nivel === 'agente';
+}
+
+function abrirModalFamilia() {
+  document.getElementById('modal-familia-titulo').textContent = 'Nova Família';
+  ['f-nome','f-cpf','f-nis','f-telefone','f-endereco','f-numero','f-apto','f-bairro','f-cidade','f-obs','f-foto-url'].forEach(id => document.getElementById(id).value = '');
+  resetarFotoModal();
+  atualizarSelectCapela(usuarioAtual.paroquia, 'f-capela', '', true, '— Matriz —');
+  document.getElementById('f-pessoas').value = 1;
+  document.getElementById('f-renda').value = '';
+  document.getElementById('f-moradia').value = '';
+  document.getElementById('f-id').value = '';
+  document.getElementById('alerta-duplicata').style.display = 'none';
+  abrirModal('modal-familia');
+}
+
+function editarFamilia(id) {
+  const f = familias.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('modal-familia-titulo').textContent = 'Editar Família';
+  document.getElementById('f-nome').value = f.nome || '';
+  document.getElementById('f-cpf').value = f.cpf || '';
+  document.getElementById('f-nis').value = f.nis || '';
+  document.getElementById('f-telefone').value = f.telefone || '';
+  document.getElementById('f-pessoas').value = f.pessoas || 1;
+  document.getElementById('f-endereco').value = f.endereco || '';
+  document.getElementById('f-numero').value = f.numero || '';
+  document.getElementById('f-apto').value = f.apto || '';
+  document.getElementById('f-bairro').value = f.bairro || '';
+  document.getElementById('f-cidade').value = f.cidade || '';
+  document.getElementById('f-renda').value = f.renda || '';
+  document.getElementById('f-moradia').value = f.moradia || '';
+  document.getElementById('f-obs').value = f.obs || '';
+  atualizarSelectCapela(usuarioAtual.paroquia, 'f-capela', f.capela || '', true, '— Matriz —');
+  carregarFotoModal(f.fotoUrl || '');
+  document.getElementById('f-id').value = id;
+  document.getElementById('alerta-duplicata').style.display = 'none';
+  abrirModal('modal-familia');
+}
+
+function salvarFamilia() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const cpf = document.getElementById('f-cpf').value.trim();
+  const pessoas = parseInt(document.getElementById('f-pessoas').value) || 1;
+  const endRua = document.getElementById('f-endereco').value.trim();
+  const endNumero = document.getElementById('f-numero').value.trim();
+  const endApto = document.getElementById('f-apto').value.trim();
+  const endereco = endRua + (endNumero ? ', ' + endNumero : '') + (endApto ? ' — ' + endApto : '');
+  const id = document.getElementById('f-id').value;
+
+  if (!nome) { toast('Informe o nome da família.', 'erro'); return; }
+  if (!cpf) { toast('Informe o CPF.', 'erro'); return; }
+  if (!endRua) { toast('Informe a rua/logradouro.', 'erro'); return; }
+  if (!endNumero) { toast('Informe o número.', 'erro'); return; }
+
+  const cpfNorm = cpf.replace(/\D/g, '');
+  const endNormRua = (endRua + ' ' + endNumero).trim().toLowerCase().replace(/\s+/g, ' ');
+
+  const dados = {
+    nome, cpf, pessoas, endereco,
+    numero: endNumero, apto: endApto,
+    nis: document.getElementById('f-nis').value.trim(),
+    telefone: document.getElementById('f-telefone').value.trim(),
+    bairro: document.getElementById('f-bairro').value.trim(),
+    cidade: document.getElementById('f-cidade').value.trim(),
+    renda: parseFloat(document.getElementById('f-renda').value) || 0,
+    moradia: document.getElementById('f-moradia').value,
+    obs: document.getElementById('f-obs').value.trim(),
+    capela: document.getElementById('f-capela').value || '',
+    fotoUrl: document.getElementById('f-foto-url').value || '',
+    paroquia: usuarioAtual.paroquia === '__admin__' ? 'Diocese' : usuarioAtual.paroquia,
+    inativo: false,
+    criadoEm: id ? (familias.find(f=>f.id===id)||{}).criadoEm : new Date().toISOString()
+  };
+
+  if (usandoFirebase && db) {
+    // ── Consultar Firebase globalmente para garantir unicidade ─────────────
+    toast('Verificando cadastros...', '');
+    Promise.all([
+      db.collection('familias').where('cpf', '==', cpf).get(),
+      db.collection('familias').where('endereco', '==', endereco).get()
+    ]).then(([snapCPF, snapEnd]) => {
+
+      // ── 1. Bloquear: CPF duplicado ────────────────────────────────────
+      const dupCPF = snapCPF.docs.find(d => d.id !== id && !d.data().inativo);
+      if (dupCPF) {
+        const fDup = { id: dupCPF.id, ...dupCPF.data() };
+        db.collection('entregas').where('familiaId', '==', dupCPF.id).get()
+          .then(snapEnt => {
+            mostrarBloqueioFirebase('cpf', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })));
+          });
+        return;
+      }
+
+      // ── 2. Bloquear: mesmo endereço completo, CPF diferente ───────────
+      const dupEnd = snapEnd.docs.find(d => {
+        if (d.id === id || d.data().inativo) return false;
+        return d.data().cpf && d.data().cpf.replace(/\D/g, '') !== cpfNorm;
+      });
+      if (dupEnd) {
+        const fDup = { id: dupEnd.id, ...dupEnd.data() };
+        db.collection('entregas').where('familiaId', '==', dupEnd.id).get()
+          .then(snapEnt => {
+            mostrarBloqueioFirebase('endereco', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })));
+          });
+        return;
+      }
+
+      // ── 3. Alertar: mesma rua, número diferente ───────────────────────
+      const extrairRua = (end) => (end || '').split(',')[0].trim().toLowerCase();
+      const extrairNumero = (end) => { const p = (end || '').split(','); return p.length > 1 ? p[1].trim() : ''; };
+      const ruaNorm = extrairRua(endRua);
+      const ruaBusca = endRua.split(',')[0].trim();
+
+      const verificarVizinhos = (listaFamilias) => {
+        const vizinhos = listaFamilias.filter(f => {
+          if (f.id === id || f.inativo) return false;
+          if (f.cpf && f.cpf.replace(/\D/g, '') === cpfNorm) return false;
+          const fRuaNorm = extrairRua(f.endereco);
+          const fNumero = f.numero || extrairNumero(f.endereco);
+          return fRuaNorm === ruaNorm && fNumero !== endNumero;
+        });
+
+        const executarSalvar = (dadosFinais) => {
+          if (id) {
+            db.collection('familias').doc(id).update(dadosFinais)
+              .then(() => { fecharModal('modal-familia'); toast('Família atualizada!', 'ok'); })
+              .catch(e => toast('Erro ao salvar: ' + e.message, 'erro'));
+          } else {
+            db.collection('familias').add(dadosFinais)
+              .then(() => { fecharModal('modal-familia'); toast('Família cadastrada!', 'ok'); })
+              .catch(e => toast('Erro ao salvar: ' + e.message, 'erro'));
+          }
+        };
+
+        if (vizinhos.length && !id) {
+          const obsVizinhos = vizinhos.map(v =>
+            `Vizinho na mesma rua: ${v.nome} (nº ${v.numero || '?'}, ${v.paroquia || ''})`
+          ).join('; ');
+          const obsAtual = dados.obs ? dados.obs + ' | ' + obsVizinhos : obsVizinhos;
+          const campoObs = document.getElementById('f-obs');
+          if (campoObs) campoObs.value = obsAtual;
+          alertarVizinhanca(vizinhos, () => executarSalvar({ ...dados, obs: obsAtual }));
+        } else {
+          executarSalvar(dados);
+        }
+      };
+
+      // Buscar vizinhos no Firebase por prefixo de rua
+      db.collection('familias')
+        .orderBy('endereco')
+        .startAt(ruaBusca)
+        .endAt(ruaBusca + '\uf8ff')
+        .get()
+        .then(snapViz => {
+          verificarVizinhos(snapViz.docs.map(d => ({ id: d.id, ...d.data() })));
+        })
+        .catch(() => {
+          // Fallback: usar array local se índice não existir
+          verificarVizinhos(familias);
+        });
+
+    }).catch(e => toast('Erro ao verificar: ' + e.message, 'erro'));
+
+    } else {
+    // ── localStorage: verificar no array local ────────────────────────────
+    const dupCPF = familias.find(f =>
+      f.id !== id && f.cpf && f.cpf.replace(/\D/g, '') === cpfNorm && !f.inativo
+    );
+    if (dupCPF) { mostrarBloqueio('cpf', dupCPF); return; }
+
+    const dupEnd = familias.find(f => {
+      if (f.id === id || f.inativo) return false;
+      if (f.cpf && f.cpf.replace(/\D/g, '') === cpfNorm) return false;
+      const fRua = f.numero
+        ? ((f.endereco || '') + ' ' + f.numero).trim().toLowerCase().replace(/\s+/g, ' ')
+        : (f.endereco || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      return fRua === endNormRua;
+    });
+    if (dupEnd) { mostrarBloqueio('endereco', dupEnd); return; }
+
+    // Verificar vizinhos na mesma rua (número diferente)
+    const extrairRua = (end) => (end || '').split(',')[0].trim().toLowerCase();
+    const extrairNumero = (end) => { const p = (end || '').split(','); return p.length > 1 ? p[1].trim() : ''; };
+    const ruaNorm = extrairRua(endRua) || endRua.trim().toLowerCase();
+    const vizinhos = familias.filter(f => {
+      if (f.id === id || f.inativo) return false;
+      if (f.cpf && f.cpf.replace(/\D/g, '') === cpfNorm) return false;
+      const fRuaNorm = extrairRua(f.endereco);
+      const fNumero = f.numero || extrairNumero(f.endereco);
+      return fRuaNorm === ruaNorm && fNumero !== endNumero;
+    });
+
+    const salvarLocal2 = (dadosFinais) => {
+      if (id) {
+        const idx = familias.findIndex(f => f.id === id);
+        if (idx >= 0) familias[idx] = { ...familias[idx], ...dadosFinais };
+      } else {
+        dadosFinais.id = 'f_' + Date.now();
+        familias.push(dadosFinais);
+      }
+      salvarLocal();
+      renderFamilias();
+      fecharModal('modal-familia');
+      toast(id ? 'Família atualizada!' : 'Família cadastrada!', 'ok');
+    };
+
+    if (vizinhos.length && !id) {
+      const obsVizinhos = vizinhos.map(v =>
+        `Vizinho na mesma rua: ${v.nome} (nº ${v.numero || '?'}, ${v.paroquia || ''})`
+      ).join('; ');
+      const obsAtual = dados.obs ? dados.obs + ' | ' + obsVizinhos : obsVizinhos;
+      const campoObs = document.getElementById('f-obs');
+      if (campoObs) campoObs.value = obsAtual;
+      alertarVizinhanca(vizinhos, () => salvarLocal2({ ...dados, obs: obsAtual }));
+    } else {
+      salvarLocal2(dados);
+    }
+  }
+}
+
+function verFamilia(id) {
+  const f = familias.find(x => x.id === id);
+  if (!f) return;
+  const entsFam = entregas.filter(e => e.familiaId === id);
+  const body = document.getElementById('modal-ver-familia-body');
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      ${f.fotoUrl ? `<div style="grid-column:1/-1;display:flex;justify-content:center;margin-bottom:8px;"><img src="${f.fotoUrl}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--vermelho);" alt="Foto"></div>` : ''}
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Nome</div><strong>${esc(f.nome)}</strong></div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">CPF</div>${esc(f.cpf||'—')}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">NIS/CadÚnico</div>${esc(f.nis||'—')}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Telefone</div>${esc(f.telefone||'—')}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Pessoas</div>${f.pessoas||1}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Renda</div>R$ ${(f.renda||0).toFixed(2)}</div>
+      <div style="grid-column:1/-1;"><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Endereço</div>${esc(f.endereco||'—')}${f.bairro?', '+esc(f.bairro):''}${f.cidade?', '+esc(f.cidade):''}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Moradia</div>${esc(f.moradia||'—')}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Status</div><span class="badge ${f.inativo?'badge-inativo':'badge-ativo'}">${f.inativo?'Inativa':'Ativa'}</span></div>
+      ${f.obs?`<div style="grid-column:1/-1;"><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Observações</div>${esc(f.obs)}</div>`:''}
+    </div>
+    <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px;">Histórico de entregas (${entsFam.length})</div>
+    ${entsFam.length ? entsFam.sort((a,b)=>b.data.localeCompare(a.data)).map(e=>`
+      <div class="historico-item">
+        <span class="historico-data">${formatarData(e.data)}</span>
+        <span>${esc(e.responsavel||'—')}</span>
+        <span style="color:var(--cinza-texto);font-size:0.82rem;">${esc(e.obs||'')}</span>
+      </div>`).join('') : '<div class="vazio" style="padding:20px;"><p>Nenhuma entrega registrada.</p></div>'}
+  `;
+  const footer = document.getElementById('modal-ver-familia-footer');
+  footer.innerHTML = `<button class="btn btn-secundario" onclick="fecharModal('modal-ver-familia')">Fechar</button>`;
+  if (podeEditar() && !f.inativo) {
+    footer.innerHTML += `<button class="btn btn-primario" onclick="registrarEntregaRapida('${id}')">📦 Registrar Entrega</button>`;
+  }
+  abrirModal('modal-ver-familia');
+}
+
+function toggleInativar(id) {
+  const f = familias.find(x => x.id === id);
+  if (!f) return;
+  const acao = f.inativo ? 'reativar' : 'inativar';
+  document.getElementById('modal-confirmar-titulo').textContent = f.inativo ? 'Reativar Família' : 'Inativar Família';
+  document.getElementById('modal-confirmar-msg').textContent = `Deseja ${acao} a família "${f.nome}"? ${f.inativo ? 'Ela voltará a aparecer na lista.' : 'Ela ficará oculta da lista, mas o histórico será preservado.'}`;
+  document.getElementById('modal-confirmar-btn').onclick = () => confirmarToggleInativar(id);
+  abrirModal('modal-confirmar');
+}
+
+function confirmarToggleInativar(id) {
+  const f = familias.find(x => x.id === id);
+  if (!f) return;
+  const novoStatus = !f.inativo;
+
+  if (usandoFirebase && db) {
+    db.collection('familias').doc(id).update({ inativo: novoStatus })
+      .then(() => { fecharModal('modal-confirmar'); toast(novoStatus ? 'Família inativada.' : 'Família reativada!', 'ok'); })
+      .catch(e => toast('Erro: ' + e.message, 'erro'));
+  } else {
+    f.inativo = novoStatus;
+    salvarLocal();
+    renderFamilias();
+    fecharModal('modal-confirmar');
+    toast(novoStatus ? 'Família inativada.' : 'Família reativada!', 'ok');
+  }
+}
+
+// ---------- DUPLICATA ENDEREÇO ----------
+function normalizar(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function similaridade(a, b) {
+  const na = normalizar(a), nb = normalizar(b);
+  if (!na || !nb) return 0;
+  const palavrasA = new Set(na.split(' '));
+  const palavrasB = nb.split(' ');
+  const comuns = palavrasB.filter(p => palavrasA.has(p)).length;
+  return comuns / Math.max(palavrasA.size, palavrasB.length);
+}
+
+function verificarDuplicataEndereco() {
+  const end = document.getElementById('f-endereco').value;
+  const idAtual = document.getElementById('f-id').value;
+  if (end.length < 6) { document.getElementById('alerta-duplicata').style.display = 'none'; return; }
+  const similar = familias.find(f => f.id !== idAtual && !f.inativo && similaridade(f.endereco, end) > 0.65);
+  if (similar) {
+    document.getElementById('alerta-duplicata-detalhe').textContent = similar.nome + ' — ' + similar.endereco;
+    document.getElementById('alerta-duplicata').style.display = 'block';
+  } else {
+    document.getElementById('alerta-duplicata').style.display = 'none';
+  }
+}
+
+// ---------- ENTREGAS ----------
+function buscarFamiliaEntrega() {
+  const busca = document.getElementById('entrega-busca').value.toLowerCase().trim();
+  const resultado = document.getElementById('entrega-resultado');
+  if (busca.length < 2) { resultado.innerHTML = ''; return; }
+  const lista = familias.filter(f => !f.inativo && (
+    (f.nome||'').toLowerCase().includes(busca) || (f.cpf||'').includes(busca)
+  ));
+  if (!lista.length) {
+    resultado.innerHTML = '<div class="vazio" style="padding:20px;"><p>Nenhuma família encontrada.</p></div>';
+    return;
+  }
+  resultado.innerHTML = lista.map(f => {
+    const jaDeu = entregas.some(e => e.familiaId === f.id && e.data && e.data.startsWith(new Date().toISOString().slice(0,7)));
+    return `
+    <div style="background:var(--cinza-claro);border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <strong>${esc(f.nome)}</strong> <span style="color:var(--cinza-texto);font-size:0.82rem;">CPF: ${esc(f.cpf||'—')}</span><br>
+        <span style="font-size:0.82rem;color:var(--cinza-texto);">${esc(f.bairro||'')}${f.bairro&&f.cidade?', ':''}${esc(f.cidade||'')} · ${f.pessoas||1} pessoas</span>
+        ${jaDeu ? '<br><span style="font-size:0.78rem;color:var(--amarelo);font-weight:600;">⚠️ Já recebeu cesta este mês</span>' : ''}
+      </div>
+      <button class="btn btn-primario btn-sm" onclick="registrarEntregaRapida('${f.id}')">📦 Registrar Entrega</button>
+    </div>`;
+  }).join('');
+}
+
+function registrarEntregaRapida(familiaId) {
+  const f = familias.find(x => x.id === familiaId);
+  if (!f) return;
+  fecharModal('modal-ver-familia');
+
+  const obs = prompt(`Registrar entrega para: ${f.nome}\n\nObservação (opcional):`);
+  if (obs === null) return;
+
+  const entrega = {
+    familiaId,
+    familiaNome: f.nome,
+    familiaCpf: f.cpf,
+    paroquia: f.paroquia,
+    data: new Date().toISOString().slice(0,10),
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    obs: obs.trim()
+  };
+
+  if (usandoFirebase && db) {
+    db.collection('entregas').add(entrega)
+      .then(() => { descontarEstoque(f.paroquia); toast('Entrega registrada! ✅', 'ok'); })
+      .catch(e => toast('Erro: ' + e.message, 'erro'));
+  } else {
+    entrega.id = 'e_' + Date.now();
+    entregas.push(entrega);
+    descontarEstoque(f.paroquia);
+    salvarLocal();
+    renderHistorico();
+    toast('Entrega registrada! ✅', 'ok');
+  }
+  document.getElementById('entrega-busca').value = '';
+  document.getElementById('entrega-resultado').innerHTML = '';
+}
+
+// ---------- HISTÓRICO ----------
+function renderHistorico() {
+  const mes = document.getElementById('filtro-mes-hist').value;
+  const busca = document.getElementById('busca-historico').value.toLowerCase();
+  let lista = entregas;
+  if (mes) lista = lista.filter(e => e.data && e.data.startsWith(mes));
+  if (busca) lista = lista.filter(e => (e.familiaNome||'').toLowerCase().includes(busca) || (e.familiaCpf||'').includes(busca));
+  lista = lista.sort((a,b) => b.data.localeCompare(a.data));
+  const tbody = document.getElementById('tabela-historico');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(e => `
+    <tr>
+      <td><strong class="historico-data">${formatarData(e.data)}</strong></td>
+      <td>${esc(e.familiaNome||'—')}</td>
+      <td>${esc(e.familiaCpf||'—')}</td>
+      <td>${esc(e.responsavel||'—')}</td>
+      <td>${esc(e.obs||'—')}</td>
+    </tr>`).join('');
+}
+
+// ---------- AGENTES ----------
+const LISTA_PAROQUIAS = [
+  'Santuário Diocesano Santo Antônio (Franca-SP)',
+  'Sé Catedral Nossa Senhora da Conceição (Franca-SP)',
+  'Paróquia São Joaquim (São Joaquim da Barra-SP)',
+  'Paróquia Nosso Senhor Jesus Cristo Rei do Universo (Orlândia-SP)',
+  'Paróquia Divino Espírito Santo (Nuporanga-SP)',
+  'Paróquia São José (Orlândia-SP)',
+  'Paróquia São João Batista (Ituverava-SP)',
+  'Paróquia Menino Jesus de Praga e Santa Ifigênia (Franca-SP)',
+  'Paróquia São Sebastião (Franca-SP)',
+  'Paróquia São Pedro (Franca-SP)',
+  "Paróquia Sant'Ana (Franca-SP)",
+  'Paróquia Sagrado Coração de Jesus (Franca-SP)',
+  'Paróquia Nossa Senhora do Patrocínio (Patrocínio Paulista-SP)',
+  'Paróquia Santa Edwiges (Franca-SP)',
+  'Paróquia São Benedito (Franca-SP)',
+  'Paróquia Santa Rita de Cássia (Franca-SP)',
+  'Paróquia Santa Gianna (Franca-SP)',
+  'Paróquia Nossa Senhora do Carmo (Ituverava-SP)',
+  'Paróquia São Crispim (Franca-SP)',
+  'Paróquia Santa Teresinha (Franca-SP)',
+  'Paróquia São Vicente de Paulo (Franca-SP)',
+  'Paróquia Nossa Senhora Aparecida - Capelinha (Franca-SP)',
+  'Paróquia Santa Rita de Cássia (Igarapava-SP)',
+  'Paróquia São Sebastião e Santo Antônio (Guará-SP)',
+  'Paróquia São José (São José da Bela Vista-SP)',
+  'Paróquia São Judas Tadeu (Franca-SP)',
+  'Paróquia Sagrada Família (Franca-SP)',
+  'Paróquia Nossa Senhora da Guia (Franca-SP)',
+  'Paróquia Santa Rita de Cássia (Sales Oliveira-SP)',
+  'Paróquia São Francisco de Assis (Franca-SP)',
+  'Paróquia Nossa Senhora Rosa Mística (Franca-SP)',
+  'Paróquia Santa Mônica (Franca-SP)',
+  'Paróquia Santa Luzia (Franca-SP)',
+  'Paróquia Nossa Senhora das Graças (São Joaquim da Barra-SP)',
+  'Paróquia Nossa Senhora Aparecida (São Joaquim da Barra-SP)',
+  'Paróquia Nossa Senhora da Abadia (Cristais Paulista-SP)',
+  'Paróquia Nossa Senhora Aparecida (Itirapuã-SP)',
+  'Paróquia São João Batista (Franca-SP)',
+  'Paróquia Santa Cruz (Ribeirão Corrente-SP)',
+  'Paróquia Santo Antônio (Aramina-SP)',
+  'Paróquia Nossa Senhora do Patrocínio (Buritizal-SP)',
+  'Paróquia Santo Antônio (Rifaina-SP)',
+  'Paróquia São Sebastião (Jeriquara-SP)',
+  'Paróquia Nossa Senhora Aparecida (Pedregulho-SP)'
+];
+
+function renderAgentes() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  const tbody = document.getElementById('tabela-agentes');
+
+  document.getElementById('th-paroquia-agente').style.display = isAdmin ? '' : 'none';
+  document.getElementById('titulo-agentes').textContent = isAdmin ? 'Responsáveis e Agentes — Diocese' : 'Agentes da Paróquia';
+
+  const lista = isAdmin
+    ? agentes
+    : agentes.filter(a => a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
+
+  const colspan = isAdmin ? 5 : 4;
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}"><div class="vazio"><div class="vazio-icone">👥</div><p>Nenhum usuário cadastrado.</p></div></td></tr>`;
+    return;
+  }
+
+  const ordenado = [...lista].sort((a,b) => {
+    if (a.nivel !== b.nivel) return a.nivel === 'responsavel' ? -1 : 1;
+    return (a.paroquia||'').localeCompare(b.paroquia||'');
+  });
+
+  tbody.innerHTML = ordenado.map(a => {
+    const podeRemover = isAdmin || (usuarioAtual.nivel === 'responsavel' && a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
+    const badgeClass = a.nivel === 'responsavel' ? 'badge-ativo' : 'badge-inativo';
+    const badgeLabel = a.nivel === 'responsavel' ? 'Responsável' : 'Agente';
+    return `<tr>
+      <td><strong>${esc(a.nome)}</strong></td>
+      <td><code>${esc(a.usuario)}</code></td>
+      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      ${isAdmin ? `<td style="font-size:0.82rem;color:var(--cinza-texto);">${esc(a.paroquia||'—')}</td>` : ''}
+      <td>${podeRemover ? `<button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function abrirModalAgente() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  ['a-nome','a-usuario','a-senha'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('a-id').value = '';
+  document.getElementById('modal-agente-titulo').textContent = isAdmin ? 'Novo Usuário' : 'Novo Agente';
+
+  const grupoNivel = document.getElementById('grupo-a-nivel');
+  if (isAdmin) {
+    grupoNivel.style.display = '';
+    document.getElementById('a-nivel').innerHTML = `
+      <option value="responsavel">Responsável (Admin paróquia)</option>
+      <option value="agente">Agente (entrada de dados)</option>`;
+    const selPar = document.getElementById('a-paroquia');
+    selPar.innerHTML = LISTA_PAROQUIAS.map(p => `<option>${p}</option>`).join('');
+    selPar.onchange = () => atualizarSelectCapela(selPar.value, 'a-capela', '', true, '— Nenhuma (matriz) —');
+    document.getElementById('grupo-a-paroquia').style.display = '';
+  } else {
+    grupoNivel.style.display = 'none';
+    document.getElementById('a-nivel').innerHTML = '<option value="agente">Agente</option>';
+    document.getElementById('grupo-a-paroquia').style.display = 'none';
+  }
+  const parAgente = document.getElementById('a-paroquia') && document.getElementById('a-paroquia').value
+    ? document.getElementById('a-paroquia').value
+    : usuarioAtual.paroquia;
+  atualizarSelectCapela(parAgente, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  abrirModal('modal-agente');
+}
+
+function salvarAgente() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  const nome = document.getElementById('a-nome').value.trim();
+  const usuario = document.getElementById('a-usuario').value.trim();
+  const senha = document.getElementById('a-senha').value.trim();
+  const nivel = isAdmin ? document.getElementById('a-nivel').value : 'agente';
+  const paroquia = isAdmin ? document.getElementById('a-paroquia').value : usuarioAtual.paroquia;
+
+  if (!nome||!usuario||!senha) { toast('Preencha todos os campos.','erro'); return; }
+  if (isAdmin && !paroquia) { toast('Selecione a paróquia.','erro'); return; }
+
+  const duplo = agentes.find(a => a.usuario === usuario && a.id !== document.getElementById('a-id').value);
+  if (duplo) { toast('Esse nome de usuário já existe.','erro'); return; }
+
+  const capelaSel = document.getElementById('a-capela');
+  const capela = capelaSel ? capelaSel.value : '';
+  const agente = { nome, usuario, senha, nivel, paroquia, capela };
+
+  if (usandoFirebase && db) {
+    db.collection('agentes').add(agente)
+      .then(()=>{ fecharModal('modal-agente'); toast('Usuário cadastrado!','ok'); })
+      .catch(e=>toast('Erro: '+e.message,'erro'));
+  } else {
+    agente.id = 'a_' + Date.now();
+    agentes.push(agente);
+    const chave = 'df_agentes_' + paroquia;
+    const existentes = JSON.parse(localStorage.getItem(chave)||'[]');
+    existentes.push(agente);
+    localStorage.setItem(chave, JSON.stringify(existentes));
+    renderAgentes();
+    fecharModal('modal-agente');
+    toast('Usuário cadastrado!','ok');
+  }
+}
+
+function removerAgente(id) {
+  const a = agentes.find(x=>x.id===id);
+  if (!a) return;
+  if (!confirm(`Remover o usuário "${a.nome}"?`)) return;
+  if (usandoFirebase && db) {
+    db.collection('agentes').doc(id).delete()
+      .then(()=>toast('Usuário removido.','ok'))
+      .catch(e=>toast('Erro: '+e.message,'erro'));
+  } else {
+    agentes = agentes.filter(x=>x.id!==id);
+    const chave = 'df_agentes_' + a.paroquia;
+    const existentes = JSON.parse(localStorage.getItem(chave)||'[]').filter(x=>x.id!==id);
+    localStorage.setItem(chave, JSON.stringify(existentes));
+    renderAgentes();
+    toast('Usuário removido.','ok');
+  }
+}
+
+// ---------- PAINEL DIOCESE ----------
+function renderPainel() {
+  const mes = document.getElementById('painel-mes').value;
+
+  const totalFamilias = familias.filter(f=>!f.inativo).length;
+  const totalInativas = familias.filter(f=>f.inativo).length;
+  const entregasMes = entregas.filter(e=>mes&&e.data&&e.data.startsWith(mes));
+  const pessoasMes = entregasMes.reduce((s,e)=>{
+    const f = familias.find(x=>x.id===e.familiaId);
+    return s + (f?f.pessoas||1:1);
+  },0);
+  const paroquias = [...new Set(familias.map(f=>f.paroquia))].filter(Boolean);
+
+  document.getElementById('painel-cards').innerHTML = `
+    <div class="card-resumo"><div class="numero">${totalFamilias}</div><div class="label">Famílias ativas</div></div>
+    <div class="card-resumo"><div class="numero">${entregasMes.length}</div><div class="label">Entregas no mês</div></div>
+    <div class="card-resumo"><div class="numero">${pessoasMes}</div><div class="label">Pessoas atendidas</div></div>
+    <div class="card-resumo"><div class="numero">${paroquias.length}</div><div class="label">Paróquias ativas</div></div>
+    <div class="card-resumo"><div class="numero">${totalInativas}</div><div class="label">Famílias inativas</div></div>
+  `;
+
+  const tbody = document.getElementById('tabela-paroquias');
+  tbody.innerHTML = paroquias.sort().map(p => {
+    const famAtivas = familias.filter(f=>f.paroquia===p&&!f.inativo);
+    const famInativas = familias.filter(f=>f.paroquia===p&&f.inativo).length;
+    const entsMes = entregasMes.filter(e=>{
+      const f=familias.find(x=>x.id===e.familiaId);
+      return f&&f.paroquia===p;
+    });
+    const pessoas = entsMes.reduce((s,e)=>{const f=familias.find(x=>x.id===e.familiaId);return s+(f?f.pessoas||1:1);},0);
+    return `<tr>
+      <td>${esc(p)}</td>
+      <td>${famAtivas.length}</td>
+      <td>${entsMes.length}</td>
+      <td>${pessoas}</td>
+      <td>${famInativas}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5"><div class="vazio" style="padding:20px;"><p>Nenhuma família cadastrada.</p></div></td></tr>`;
+
+  const contagem = {};
+  entregas.forEach(e=>{ contagem[e.familiaId]=(contagem[e.familiaId]||0)+1; });
+  const top = Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('tabela-top-familias').innerHTML = top.map(([fid,qtd],i)=>{
+    const f = familias.find(x=>x.id===fid);
+    return `<tr>
+      <td><strong>${i+1}</strong></td>
+      <td>${esc(f?f.nome:'—')}</td>
+      <td style="font-size:0.82rem;color:var(--cinza-texto);">${esc(f?f.paroquia||'—':'—')}</td>
+      <td><strong>${qtd}</strong></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="4"><div class="vazio" style="padding:20px;"><p>Sem dados.</p></div></td></tr>`;
+}
+
+function buscaGlobal() {
+  const busca = document.getElementById('busca-global').value.toLowerCase().trim();
+  const div = document.getElementById('resultado-busca-global');
+  const tbody = document.getElementById('tabela-busca-global');
+  if (busca.length < 2) { div.style.display='none'; return; }
+  const lista = familias.filter(f=>(f.nome||'').toLowerCase().includes(busca)||(f.cpf||'').includes(busca));
+  div.style.display='block';
+  tbody.innerHTML = lista.map(f=>`<tr>
+    <td>${esc(f.nome)}</td><td>${esc(f.cpf||'—')}</td>
+    <td style="font-size:0.82rem;">${esc(f.paroquia||'—')}</td>
+    <td>${f.pessoas||1}</td>
+    <td><span class="badge ${f.inativo?'badge-inativo':'badge-ativo'}">${f.inativo?'Inativa':'Ativa'}</span></td>
+  </tr>`).join('') || `<tr><td colspan="5"><div class="vazio" style="padding:16px;"><p>Nenhum resultado.</p></div></td></tr>`;
+}
+
+function exportarCSV() {
+  const mes = document.getElementById('painel-mes').value;
+  const linhas = [['Paróquia','Família','CPF','Pessoas','Data Entrega','Responsável','Observação']];
+  const lista = mes ? entregas.filter(e=>e.data&&e.data.startsWith(mes)) : entregas;
+  lista.forEach(e=>{
+    const f = familias.find(x=>x.id===e.familiaId);
+    linhas.push([f?f.paroquia||'':'', f?f.nome||'':'', f?f.cpf||'':'', f?f.pessoas||1:1, e.data||'', e.responsavel||'', e.obs||'']);
+  });
+  const csv = linhas.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url;
+  a.download = `caritas-cestas-basicas-${mes||'completo'}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV exportado!','ok');
+}
+
+// ---------- FIREBASE ----------
+function conectarFirebase() {
+  const json = document.getElementById('firebase-json').value.trim();
+  if (!json) { toast('Cole o JSON de configuração.','erro'); return; }
+  try {
+    const config = JSON.parse(json);
+    if (typeof firebase === 'undefined') {
+      carregarFirebaseSDK(config);
+    } else {
+      inicializarFirebase(config);
+    }
+  } catch(e) { toast('JSON inválido: '+e.message,'erro'); }
+}
+
+function carregarFirebaseSDK(config) {
+  const status = document.getElementById('status-firebase');
+  status.className='aviso aviso-info'; status.textContent='Carregando Firebase SDK...';
+  const urls = [
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js'
+  ];
+  let loaded = 0;
+  urls.forEach(url=>{
+    const s=document.createElement('script'); s.src=url;
+    s.onload=()=>{ loaded++; if(loaded===urls.length) inicializarFirebase(config); };
+    s.onerror=()=>{ status.className='aviso aviso-alerta'; status.textContent='Não foi possível carregar o Firebase. Verifique a conexão.'; };
+    document.head.appendChild(s);
+  });
+}
+
+function inicializarFirebase(config) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(config);
+    db = firebase.firestore();
+    window.storage = firebase.storage();
+    db.collection('_ping').limit(1).get()
+      .then(()=>{
+        usandoFirebase = true;
+        const status = document.getElementById('status-firebase');
+        status.className='aviso aviso-ok'; status.textContent='✅ Conectado ao Firebase — ' + config.projectId;
+        toast('Firebase conectado!','ok');
+        if (usuarioAtual) carregarDados();
+      })
+      .catch(e=>{
+        const status=document.getElementById('status-firebase');
+        status.className='aviso aviso-alerta';
+        status.textContent='Firebase encontrado mas sem acesso ao Firestore. Verifique as regras de segurança.';
+      });
+  } catch(e) {
+    document.getElementById('status-firebase').textContent='Erro: '+e.message;
+  }
+}
+
+function usarLocalStorage() {
+  usandoFirebase = false; db = null;
+  const status=document.getElementById('status-firebase');
+  status.className='aviso aviso-alerta'; status.textContent='Usando armazenamento local (dados ficam neste navegador).';
+  toast('Modo local ativado.','ok');
+  if (usuarioAtual) carregarDados();
+}
+
+// ---------- UTILITÁRIOS ----------
+function abrirModal(id) { document.getElementById(id).classList.add('aberto'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+
+function toast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (tipo||'');
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function formatarCPF(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > 11) v = v.slice(0,11);
+  v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  el.value = v;
+}
+
+function formatarData(d) {
+  if (!d) return '—';
+  const [a,m,dia] = d.split('-');
+  return `${dia}/${m}/${a}`;
+}
+
+// Fechar modal clicando fora
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('aberto'); });
+});
+
+// Enter no login
+document.getElementById('login-senha').addEventListener('keypress', e=>{ if(e.key==='Enter') fazerLogin(); });
+
+// Init: verificar Firebase padrão automaticamente
+window.addEventListener('load', ()=>{
+  const configPadrao = {
+    apiKey:"AIzaSyCTR2l5Ft5SGPMibA-oestGsmQRKARmeW4",
+    authDomain:"caritascestasbasicas.firebaseapp.com",
+    projectId:"caritascestasbasicas",
+    storageBucket:"caritascestasbasicas.firebasestorage.app",
+    messagingSenderId:"968805151701",
+    appId:"1:968805151701:web:f83dfb8c306fd7437e835c"
+  };
+  document.getElementById('firebase-json').value = JSON.stringify(configPadrao, null, 2);
+  document.getElementById('status-firebase').textContent = 'Clique em "Conectar ao Firebase" para sincronizar os dados.';
+  carregarFirebaseSDK(configPadrao);
+
+  // Pré-selecionar paróquia via parâmetro de URL (?paroquia=Nome)
+  const params = new URLSearchParams(window.location.search);
+  const paroquiaURL = params.get('paroquia');
+  if (paroquiaURL) {
+    const sel = document.getElementById('login-paroquia');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === paroquiaURL || sel.options[i].text === paroquiaURL) {
+        sel.value = sel.options[i].value;
+        break;
+      }
+    }
+    aoSelecionarParoquia();
+  }
+
+  // Re-renderizar ao girar o celular
+  window.addEventListener('resize', () => {
+    if (document.getElementById('secao-familias').classList.contains('ativa')) {
+      renderFamilias();
+    }
+  });
+});
+
+function toggleSenha() {
+  const campo = document.getElementById('login-senha');
+  const icone = document.getElementById('icone-olho');
+  const mostrar = campo.type === 'password';
+  campo.type = mostrar ? 'text' : 'password';
+  icone.innerHTML = mostrar
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+// ══════════════════════════════════════════════════════
+// MÓDULO ESTOQUE
+// ══════════════════════════════════════════════════════
+
+function getSaldoParoquia(paroquia) {
+  return (estoques[paroquia] && estoques[paroquia].saldo != null)
+    ? estoques[paroquia].saldo : null;
+}
+
+function getCompartilhavel(paroquia) {
+  return (estoques[paroquia] && estoques[paroquia].compartilhavel != null)
+    ? estoques[paroquia].compartilhavel : null;
+}
+
+// ── Lançar recebimento ────────────────────────────────
+function abrirModalEstoque() {
+  const saldoAtual = getSaldoParoquia(usuarioAtual.paroquia);
+  const txt = saldoAtual !== null
+    ? `Saldo interno atual: <strong>${saldoAtual} cesta(s)</strong>`
+    : 'Nenhum estoque lançado ainda.';
+  document.getElementById('estoque-saldo-atual-modal').innerHTML = txt;
+  document.getElementById('estoque-qtd').value = '';
+  document.getElementById('estoque-obs').value = '';
+  atualizarSelectCapela(usuarioAtual.paroquia, 'estoque-capela', '', true, '— Toda a paróquia —');
+  abrirModal('modal-estoque');
+}
+
+function confirmarLancamentoEstoque() {
+  const qtd = parseInt(document.getElementById('estoque-qtd').value);
+  if (!qtd || qtd < 1) { toast('Informe uma quantidade válida.', 'erro'); return; }
+  const obs = document.getElementById('estoque-obs').value.trim();
+  const capelaEstoque = (document.getElementById('estoque-capela') || {}).value || '';
+  const par = usuarioAtual.paroquia;
+  const saldoAnterior = getSaldoParoquia(par) || 0;
+  const novoSaldo = saldoAnterior + qtd;
+  const dados = {
+    ...(estoques[par] || {}),
+    saldo: novoSaldo,
+    ultimaAtualizacao: new Date().toISOString().slice(0,10),
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    obs,
+    capelaOrigem: capelaEstoque
+  };
+  salvarEstoque(par, dados, () => toast(`+${qtd} cestas lançadas. Saldo interno: ${novoSaldo}`, 'ok'));
+  fecharModal('modal-estoque');
+}
+
+// ── Definir compartilhável ────────────────────────────
+function abrirModalCompartilhar() {
+  const par = usuarioAtual.paroquia;
+  const saldo = getSaldoParoquia(par);
+  const comp = getCompartilhavel(par);
+  let info = '';
+  if (saldo !== null) info += `Saldo interno: <strong>${saldo}</strong> cesta(s).<br>`;
+  if (comp !== null) info += `Atualmente disponível para compartilhar: <strong>${comp}</strong>.`;
+  else info += 'Nenhuma quantidade definida ainda para compartilhamento.';
+  if (saldo !== null) info += `<br><small style="color:var(--cinza-texto)">O valor não pode ultrapassar o saldo interno (${saldo}).</small>`;
+  document.getElementById('compartilhar-saldo-info').innerHTML = info;
+  document.getElementById('compartilhar-qtd').value = comp !== null ? comp : '';
+  document.getElementById('compartilhar-obs').value = (estoques[par] && estoques[par].obsComp) || '';
+  atualizarSelectCapela(par, 'comp-capela', (estoques[par] && estoques[par].capelaComp) || '', true, '— Toda a paróquia —');
+  abrirModal('modal-compartilhar');
+}
+
+function confirmarCompartilhamento() {
+  const par = usuarioAtual.paroquia;
+  const qtd = parseInt(document.getElementById('compartilhar-qtd').value);
+  if (isNaN(qtd) || qtd < 0) { toast('Informe um número válido (0 ou mais).', 'erro'); return; }
+  const saldo = getSaldoParoquia(par);
+  if (saldo !== null && qtd > saldo) {
+    toast(`Não pode ultrapassar o saldo interno (${saldo}).`, 'erro'); return;
+  }
+  const obs = document.getElementById('compartilhar-obs').value.trim();
+  const dados = {
+    ...(estoques[par] || {}),
+    compartilhavel: qtd,
+    obsComp: obs,
+    capelaComp: (document.getElementById('comp-capela') || {}).value || '',
+    ultimaAtualizacaoComp: new Date().toISOString().slice(0,10),
+    responsavelComp: usuarioAtual.nome || usuarioAtual.usuario
+  };
+  salvarEstoque(par, dados, () => toast(`Disponível para compartilhar: ${qtd} cesta(s)`, 'ok'));
+  fecharModal('modal-compartilhar');
+}
+
+// ── Persistência ──────────────────────────────────────
+function salvarEstoque(paroquia, dados, onSuccess) {
+  estoques[paroquia] = dados;
+  if (usandoFirebase && db) {
+    db.collection('estoques').doc(paroquia).set(dados)
+      .then(() => { renderEstoque(); if (onSuccess) onSuccess(); })
+      .catch(e => toast('Erro: ' + e.message, 'erro'));
+  } else {
+    salvarLocal();
+    renderEstoque();
+    if (onSuccess) onSuccess();
+  }
+}
+
+function descontarEstoque(paroquia) {
+  const e = estoques[paroquia];
+  if (!e || e.saldo == null) return;
+  const novoSaldo = Math.max(0, e.saldo - 1);
+  // Descontar também do compartilhável se houver
+  const novoComp = (e.compartilhavel != null) ? Math.max(0, e.compartilhavel - 1) : undefined;
+  const dados = {
+    ...e,
+    saldo: novoSaldo,
+    ultimaAtualizacao: new Date().toISOString().slice(0,10),
+    ...(novoComp !== undefined ? { compartilhavel: novoComp } : {})
+  };
+  estoques[paroquia] = dados;
+  if (usandoFirebase && db) {
+    db.collection('estoques').doc(paroquia).set(dados).catch(() => {});
+  } else {
+    salvarLocal();
+  }
+}
+
+// ── Renderização ──────────────────────────────────────
+function renderEstoque() {
+  const par = usuarioAtual.paroquia;
+  const isAdmin = par === '__admin__';
+
+  // Botões: ocultos para admin
+  const divBotoes = document.getElementById('estoque-botoes');
+  if (divBotoes) divBotoes.style.display = isAdmin ? 'none' : '';
+
+  // Resumo interno (só da própria paróquia)
+  const divResumo = document.getElementById('estoque-resumo-proprio');
+  const divCards = document.getElementById('estoque-cards-proprio');
+  if (!isAdmin) {
+    const saldo = getSaldoParoquia(par);
+    const comp = getCompartilhavel(par);
+    divCards.innerHTML = `
+      <div class="card-resumo" style="border-left-color:var(--azul);">
+        <div class="numero" style="color:var(--azul);font-size:1.6rem;">${saldo !== null ? saldo : '—'}</div>
+        <div class="label">Seu estoque interno</div>
+      </div>
+      <div class="card-resumo" style="border-left-color:${comp > 0 ? 'var(--verde)' : comp === 0 ? '#C0392B' : 'var(--cinza-medio)'};">
+        <div class="numero" style="color:${comp > 0 ? 'var(--verde)' : comp === 0 ? '#C0392B' : 'var(--cinza-texto)'};font-size:1.6rem;">${comp !== null ? comp : '—'}</div>
+        <div class="label">Para compartilhar</div>
+      </div>`;
+    divResumo.style.display = '';
+  } else {
+    divResumo.style.display = 'none';
+  }
+
+  // Painel compartilhamento — todas as paróquias
+  const tbody = document.getElementById('tabela-estoque-paroquias');
+  const cardsMobile = document.getElementById('estoque-cards-mobile');
+  const isMobile = window.innerWidth <= 640;
+
+  const todasParoquias = [...new Set([
+    ...Object.keys(estoques),
+    ...familias.map(f => f.paroquia).filter(Boolean)
+  ])].filter(p => p && p !== '__admin__').sort();
+
+  if (!todasParoquias.length) {
+    const vazio = '<div class="vazio"><div class="vazio-icone">🧺</div><p>Nenhum estoque registrado ainda.</p></div>';
+    tbody.innerHTML = `<tr><td colspan="4">${vazio}</td></tr>`;
+    cardsMobile.innerHTML = vazio;
+    return;
+  }
+
+  tbody.innerHTML = todasParoquias.map(p => {
+    const e = estoques[p];
+    const comp = e != null && e.compartilhavel != null ? e.compartilhavel : null;
+    const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || '—') : '—';
+    const dispLabel = comp === null
+      ? '<span class="badge badge-inativo">Não informado</span>'
+      : comp > 0
+        ? `<span class="badge badge-ativo">✅ Sim</span>`
+        : '<span class="badge" style="background:#FADBD8;color:#922B21;">🚫 Não</span>';
+    return `<tr>
+      <td style="max-width:200px;word-break:break-word;">${esc(p)}</td>
+      <td><strong>${comp !== null ? comp : '—'}</strong></td>
+      <td>${dispLabel}</td>
+      <td style="font-size:0.82rem;color:var(--cinza-texto);">${formatarData(data)}</td>
+    </tr>`;
+  }).join('');
+
+  cardsMobile.innerHTML = todasParoquias.map(p => {
+    const e = estoques[p];
+    const comp = e != null && e.compartilhavel != null ? e.compartilhavel : null;
+    const cor = comp === null ? 'var(--cinza-medio)' : comp > 0 ? 'var(--verde)' : '#C0392B';
+    const disp = comp === null ? 'Não informado' : comp > 0 ? '✅ Disponível' : '🚫 Sem cestas';
+    const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao) : null;
+    return `<div class="familia-card" style="border-left-color:${cor};display:block;">
+      <div class="familia-card-nome" style="font-size:0.85rem;">${esc(p)}</div>
+      <div class="familia-card-info">
+        <span>🤝 ${comp !== null ? comp + ' cesta(s) p/ compartilhar' : 'Sem dados'}</span>
+        <span>${disp}</span>
+        ${data ? '<span>📅 ' + formatarData(data) + '</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const wrap = document.getElementById('estoque-tabela-wrap');
+  if (isMobile) { wrap.style.display = 'none'; cardsMobile.style.display = 'block'; }
+  else { wrap.style.display = ''; cardsMobile.style.display = 'none'; }
+}
+
+// Carregar estoques do Firebase em tempo real
+function carregarEstoquesFirebase() {
+  if (!usandoFirebase || !db) return;
+  db.collection('estoques').onSnapshot(snap => {
+    estoques = {};
+    snap.forEach(d => { estoques[d.id] = d.data(); });
+    if (document.getElementById('secao-estoque').classList.contains('ativa')) renderEstoque();
+  });
+}
+
+
+// ══════════════════════════════════════════════════════
+// MÓDULO CHAT
+// ══════════════════════════════════════════════════════
+
+let chatAnexo = null;
+let chatListener = null;
+let chatPrivListener = null;
+let chatMsgsVistas = new Set();
+let privMsgsVistas = new Set();
+let chatAbaAtiva = 'geral';
+let privConversaAtual = null; // { userId, nome, paroquia }
+
+// ID único do usuário atual para indexar conversas
+function meuChatId() {
+  return (usuarioAtual.usuario + '_' + usuarioAtual.paroquia).replace(/[^a-zA-Z0-9_]/g,'_');
+}
+function chatIdConversa(idA, idB) {
+  return [idA, idB].sort().join('__');
+}
+
+// ── Alternar aba geral/privado ─────────────────────────────────────────
+function mudarChatAba(aba) {
+  chatAbaAtiva = aba;
+  document.getElementById('chat-painel-geral').style.display = aba === 'geral' ? '' : 'none';
+  document.getElementById('chat-painel-privado').style.display = aba === 'privado' ? '' : 'none';
+  document.getElementById('chat-aba-geral').classList.toggle('ativa', aba === 'geral');
+  document.getElementById('chat-aba-privado').classList.toggle('ativa', aba === 'privado');
+  if (aba === 'privado') {
+    document.getElementById('priv-badge').style.display = 'none';
+    renderListaConversas();
+  }
+}
+
+// ── CHAT GERAL ────────────────────────────────────────────────────────
+function iniciarChat() {
+  if (!usandoFirebase || !db) {
+    document.getElementById('chat-sem-firebase').style.display = '';
+    document.getElementById('chat-com-firebase').style.display = 'none';
+    return;
+  }
+  document.getElementById('chat-sem-firebase').style.display = 'none';
+  document.getElementById('chat-com-firebase').style.display = '';
+
+  if (chatListener) return;
+
+  chatListener = db.collection('chat')
+    .orderBy('ts', 'asc')
+    .limitToLast(100)
+    .onSnapshot(snap => {
+      renderMensagens(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const abaApp = document.querySelector('.aba.ativa')?.id;
+      if (abaApp !== 'aba-chat' || chatAbaAtiva !== 'geral') {
+        const novas = snap.docs.filter(d => !chatMsgsVistas.has(d.id));
+        if (novas.length) {
+          const badge = document.getElementById('chat-badge');
+          badge.style.display = 'inline';
+          badge.textContent = novas.length > 9 ? '9+' : novas.length;
+        }
+      }
+    });
+
+  // Ouvir mensagens privadas não lidas em background
+  iniciarListenerPrivado();
+}
+
+function renderMensagens(msgs) {
+  const div = document.getElementById('chat-msgs');
+  if (!msgs.length) {
+    div.innerHTML = '<div class="vazio"><div class="vazio-icone">💬</div><p>Nenhuma mensagem ainda. Seja o primeiro!</p></div>';
+    return;
+  }
+  const eu = usuarioAtual.nome || usuarioAtual.usuario;
+  const minhaPar = usuarioAtual.paroquia;
+  div.innerHTML = msgs.map(m => {
+    const proprio = m.usuario === eu && m.paroquia === minhaPar;
+    const hora = m.ts ? new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    const data = m.ts ? new Date(m.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '';
+    const anexoHtml = m.anexo ? `<div class="chat-anexo">📎 ${esc(m.anexo)}</div>` : '';
+    const parNome = m.paroquia ? m.paroquia.replace('Paróquia ','').replace('Santuário Diocesano ','').replace('Sé Catedral ','').split('(')[0].trim() : '';
+    chatMsgsVistas.add(m.id);
+    return `<div class="chat-msg ${proprio?'proprio':'outro'}">
+      ${!proprio?`<span class="chat-remetente">${esc(m.usuario)} · ${esc(parNome)}</span>`:''}
+      <div class="chat-balao">${esc(m.texto).replace(/\n/g,'<br>')}${anexoHtml}</div>
+      <span class="chat-hora">${data} ${hora}</span>
+    </div>`;
+  }).join('');
+  div.scrollTop = div.scrollHeight;
+  if (chatAbaAtiva === 'geral') document.getElementById('chat-badge').style.display = 'none';
+}
+
+function enviarMensagem() {
+  if (!usandoFirebase || !db) return;
+  const input = document.getElementById('chat-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+  db.collection('chat').add({
+    texto,
+    usuario: usuarioAtual.nome || usuarioAtual.usuario,
+    paroquia: usuarioAtual.paroquia,
+    ts: new Date().toISOString(),
+    anexo: chatAnexo ? chatAnexo.texto : null
+  }).then(() => { input.value = ''; removerAnexoChat(); })
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+// ── CHAT PRIVADO ──────────────────────────────────────────────────────
+
+function iniciarListenerPrivado() {
+  // Ouve mensagens onde o destinatário é o usuário atual, para notificação
+  if (!usandoFirebase || !db) return;
+  const meuId = meuChatId();
+  db.collection('chat_privado')
+    .where('destId', '==', meuId)
+    .where('lido', '==', false)
+    .onSnapshot(snap => {
+      const naoLidas = snap.docs.length;
+      const badge = document.getElementById('priv-badge');
+      const badgeAba = document.getElementById('chat-badge');
+      if (naoLidas > 0) {
+        badge.textContent = naoLidas > 9 ? '9+' : naoLidas;
+        badge.style.display = 'inline';
+        // Se app não está na aba chat, mostrar no badge geral também
+        const abaApp = document.querySelector('.aba.ativa')?.id;
+        if (abaApp !== 'aba-chat') {
+          badgeAba.style.display = 'inline';
+          badgeAba.textContent = '✉';
+        }
+      } else {
+        badge.style.display = 'none';
+      }
+    });
+}
+
+function abrirNovaConversa() {
+  // Montar lista de todos os agentes de outras paróquias
+  const meuId = meuChatId();
+  const outros = agentes.filter(a =>
+    a.paroquia !== usuarioAtual.paroquia &&
+    (a.nome || a.usuario)
+  );
+
+  if (!outros.length) {
+    toast('Nenhum agente de outra paróquia encontrado.', 'erro');
+    return;
+  }
+
+  const opcoes = outros.map(a =>
+    `<option value="${esc(a.usuario)}|${esc(a.paroquia)}|${esc(a.nome||a.usuario)}">${esc(a.nome||a.usuario)} — ${esc(a.paroquia.replace('Paróquia ','').split('(')[0].trim())}</option>`
+  ).join('');
+
+  document.getElementById('modal-confirmar-titulo').textContent = '🔒 Nova conversa privada';
+  document.getElementById('modal-confirmar-corpo').innerHTML = `
+    <div style="margin-bottom:10px;font-size:0.88rem;color:var(--cinza-texto);">Selecione o agente:</div>
+    <select id="priv-dest-sel" style="width:100%;padding:9px 12px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;">
+      <option value="">— Selecione —</option>
+      ${opcoes}
+    </select>`;
+  document.getElementById('modal-confirmar-ok').textContent = 'Iniciar conversa';
+  document.getElementById('modal-confirmar-ok').onclick = () => {
+    const val = document.getElementById('priv-dest-sel').value;
+    if (!val) return;
+    const [destUsuario, destParoquia, destNome] = val.split('|');
+    fecharModal('modal-confirmar');
+    abrirConversa({ usuario: destUsuario, paroquia: destParoquia, nome: destNome });
+  };
+  abrirModal('modal-confirmar');
+}
+
+function renderListaConversas() {
+  if (!usandoFirebase || !db) return;
+  const meuId = meuChatId();
+  const div = document.getElementById('chat-lista-conversas');
+
+  db.collection('chat_privado')
+    .where('participantes', 'array-contains', meuId)
+    .orderBy('ts', 'desc')
+    .limitToLast(50)
+    .get()
+    .then(snap => {
+      if (snap.empty) {
+        div.innerHTML = '<div class="vazio"><div class="vazio-icone">🔒</div><p>Nenhuma conversa ainda.<br>Clique em <strong>+ Nova conversa</strong>.</p></div>';
+        return;
+      }
+      // Agrupar por conversa (par de usuários)
+      const conversas = {};
+      snap.docs.forEach(d => {
+        const dados = d.data();
+        const convId = dados.convId;
+        if (!conversas[convId] || dados.ts > conversas[convId].ts) {
+          conversas[convId] = dados;
+        }
+      });
+
+      div.innerHTML = Object.values(conversas).map(m => {
+        const euSouRem = m.remId === meuId;
+        const outroNome = euSouRem ? m.destNome : m.remNome;
+        const outroPar = euSouRem ? m.destParoquia : m.remParoquia;
+        const outroUsuario = euSouRem ? m.destUsuario : m.remUsuario;
+        const naoLido = !euSouRem && !m.lido;
+        const parNome = outroPar ? outroPar.replace('Paróquia ','').split('(')[0].trim() : '';
+        return `<div class="chat-priv-item ${naoLido?'nao-lido':''}" onclick="abrirConversa({usuario:'${esc(outroUsuario)}',paroquia:'${esc(outroPar)}',nome:'${esc(outroNome)}'})">
+          <div class="chat-priv-info">
+            <span class="chat-priv-nome">${esc(outroNome)} ${naoLido?'<span style="color:var(--vermelho)">●</span>':''}</span>
+            <span class="chat-priv-par">${esc(parNome)}</span>
+            <span class="chat-priv-preview">${esc(m.texto||'').substring(0,60)}</span>
+          </div>
+          <span style="font-size:0.72rem;color:var(--cinza-texto);">${m.ts ? new Date(m.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : ''}</span>
+        </div>`;
+      }).join('');
+    });
+}
+
+function abrirConversa(dest) {
+  privConversaAtual = dest;
+  document.getElementById('chat-privado-lista').style.display = 'none';
+  document.getElementById('chat-privado-conversa').style.display = '';
+  document.getElementById('chat-dest-nome').textContent =
+    `${dest.nome} · ${dest.paroquia.replace('Paróquia ','').split('(')[0].trim()}`;
+
+  const meuId = meuChatId();
+  const destId = (dest.usuario + '_' + dest.paroquia).replace(/[^a-zA-Z0-9_]/g,'_');
+  const convId = chatIdConversa(meuId, destId);
+
+  if (chatPrivListener) { chatPrivListener(); chatPrivListener = null; }
+
+  chatPrivListener = db.collection('chat_privado')
+    .where('convId', '==', convId)
+    .orderBy('ts', 'asc')
+    .onSnapshot(snap => {
+      renderMensagensPrivadas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Marcar como lidas
+      snap.docs.forEach(d => {
+        if (d.data().destId === meuId && !d.data().lido) {
+          db.collection('chat_privado').doc(d.id).update({ lido: true }).catch(()=>{});
+        }
+      });
+    });
+}
+
+function voltarListaConversas() {
+  if (chatPrivListener) { chatPrivListener(); chatPrivListener = null; }
+  privConversaAtual = null;
+  document.getElementById('chat-privado-lista').style.display = '';
+  document.getElementById('chat-privado-conversa').style.display = 'none';
+  renderListaConversas();
+}
+
+function renderMensagensPrivadas(msgs) {
+  const div = document.getElementById('chat-msgs-priv');
+  if (!msgs.length) {
+    div.innerHTML = '<div class="vazio"><div class="vazio-icone">💬</div><p>Início da conversa.</p></div>';
+    return;
+  }
+  const meuId = meuChatId();
+  div.innerHTML = msgs.map(m => {
+    const proprio = m.remId === meuId;
+    const hora = m.ts ? new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    const data = m.ts ? new Date(m.ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '';
+    return `<div class="chat-msg ${proprio?'proprio':'outro'}">
+      <div class="chat-balao">${esc(m.texto).replace(/\n/g,'<br>')}</div>
+      <span class="chat-hora">${data} ${hora} ${m.lido && proprio ? '✓✓' : proprio ? '✓' : ''}</span>
+    </div>`;
+  }).join('');
+  div.scrollTop = div.scrollHeight;
+}
+
+function enviarMensagemPrivada() {
+  if (!usandoFirebase || !db || !privConversaAtual) return;
+  const input = document.getElementById('chat-input-priv');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const eu = usuarioAtual.nome || usuarioAtual.usuario;
+  const meuId = meuChatId();
+  const dest = privConversaAtual;
+  const destId = (dest.usuario + '_' + dest.paroquia).replace(/[^a-zA-Z0-9_]/g,'_');
+  const convId = chatIdConversa(meuId, destId);
+
+  db.collection('chat_privado').add({
+    convId,
+    participantes: [meuId, destId],
+    remId: meuId,
+    remNome: eu,
+    remUsuario: usuarioAtual.usuario,
+    remParoquia: usuarioAtual.paroquia,
+    destId,
+    destNome: dest.nome,
+    destUsuario: dest.usuario,
+    destParoquia: dest.paroquia,
+    texto,
+    ts: new Date().toISOString(),
+    lido: false
+  }).then(() => { input.value = ''; })
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+// ── Anexo (só no geral) ────────────────────────────────────────────────
+function abrirAnexoChat() {
+  const opcoes = familias
+    .filter(f => !f.inativo).slice(0,50)
+    .map(f => `<option value="Família: ${f.nome}${f.cpf?' (CPF '+f.cpf+')':''}">${esc(f.nome)}</option>`)
+    .join('');
+  document.getElementById('modal-confirmar-titulo').textContent = '📎 Anexar observação';
+  document.getElementById('modal-confirmar-corpo').innerHTML = `
+    <div style="margin-bottom:10px;font-size:0.88rem;color:var(--cinza-texto);">Selecione uma família ou descreva a observação:</div>
+    <select id="anexo-sel" style="width:100%;padding:9px 12px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;margin-bottom:10px;">
+      <option value="">— Selecionar família —</option>
+      ${opcoes}
+      <option value="__texto__">✏️ Digitar livremente...</option>
+    </select>
+    <div id="anexo-texto-wrap" style="display:none;">
+      <input type="text" id="anexo-texto-input" placeholder="Descreva a observação..." style="width:100%;padding:9px 12px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;">
+    </div>`;
+  document.getElementById('modal-confirmar-ok').textContent = 'Anexar';
+  document.getElementById('modal-confirmar-ok').onclick = () => {
+    const sel = document.getElementById('anexo-sel').value;
+    const texto = sel === '__texto__'
+      ? document.getElementById('anexo-texto-input').value.trim()
+      : sel;
+    if (!texto) { fecharModal('modal-confirmar'); return; }
+    chatAnexo = { texto };
+    document.getElementById('chat-anexo-texto').textContent = texto;
+    document.getElementById('chat-anexo-preview').classList.add('visivel');
+    fecharModal('modal-confirmar');
+  };
+  setTimeout(() => {
+    const s = document.getElementById('anexo-sel');
+    if (s) s.onchange = () => {
+      document.getElementById('anexo-texto-wrap').style.display = s.value === '__texto__' ? '' : 'none';
+    };
+  }, 100);
+  abrirModal('modal-confirmar');
+}
+
+function removerAnexoChat() {
+  chatAnexo = null;
+  document.getElementById('chat-anexo-preview').classList.remove('visivel');
+}
+
+function mostrarBloqueio(tipo, familia) {
+  const entsFam = entregas.filter(e => e.familiaId === familia.id);
+  const corpo = document.getElementById('modal-bloqueio-corpo');
+
+  // Montar histórico de cestas
+  let histHtml = '';
+  if (entsFam.length) {
+    const itens = entsFam.slice(-5).reverse().map(e =>
+      `<div class="alerta-bloqueio-hist-item">📦 ${formatarData(e.data)} — ${esc(e.paroquia || familia.paroquia || '')}</div>`
+    ).join('');
+    histHtml = `<div class="alerta-bloqueio-hist">
+      <div class="alerta-bloqueio-hist-titulo">📋 Histórico de cestas recebidas (últimas ${Math.min(entsFam.length,5)} de ${entsFam.length}):</div>
+      ${itens}
+    </div>`;
+  } else {
+    histHtml = `<div class="alerta-bloqueio-hist"><div class="alerta-bloqueio-hist-titulo">📋 Histórico de cestas: nenhuma entrega registrada ainda.</div></div>`;
+  }
+
+  const motivo = tipo === 'cpf'
+    ? `O CPF informado já está cadastrado na diocese.`
+    : `O endereço informado já está cadastrado na diocese com outro CPF.`;
+
+  corpo.innerHTML = `
+    <div class="alerta-bloqueio">
+      <div class="alerta-bloqueio-titulo">⛔ ${motivo}</div>
+      <div class="alerta-bloqueio-item"><strong>Nome:</strong> ${esc(familia.nome)}</div>
+      <div class="alerta-bloqueio-item"><strong>CPF:</strong> ${esc(familia.cpf || '—')}</div>
+      <div class="alerta-bloqueio-item"><strong>Endereço:</strong> ${esc(familia.endereco || '—')}${familia.bairro ? ', ' + esc(familia.bairro) : ''}</div>
+      <div class="alerta-bloqueio-item"><strong>Paróquia:</strong> ${esc(familia.paroquia || '—')}</div>
+      ${familia.capela ? `<div class="alerta-bloqueio-item"><strong>Capela:</strong> ${esc(familia.capela)}</div>` : ''}
+      ${histHtml}
+    </div>
+    <p style="font-size:0.82rem;color:var(--cinza-texto);margin-top:8px;">Se acredita que é um erro, entre em contato com o administrador diocesano.</p>`;
+
+  abrirModal('modal-bloqueio');
+}
+
+
+function excluirFamilia(id) {
+  const f = familias.find(x => x.id === id);
+  if (!f) return;
+  const entsFam = entregas.filter(e => e.familiaId === id);
+  const histMsg = entsFam.length
+    ? `Esta família possui ${entsFam.length} entrega(s) registrada(s). O histórico será <strong>preservado</strong> e recuperado automaticamente se ela for recadastrada.`
+    : 'Esta família não possui entregas registradas.';
+
+  document.getElementById('modal-confirmar-titulo').textContent = '⚠️ Excluir Família';
+  document.getElementById('modal-confirmar-msg').innerHTML =
+    `Tem certeza que deseja <strong>excluir permanentemente</strong> a família <strong>"${esc(f.nome)}"</strong>?<br><br>` +
+    `<span style="color:#C0392B;font-size:0.85rem;">${histMsg}<br>Esta ação não pode ser desfeita.</span>`;
+  document.getElementById('modal-confirmar-btn').textContent = 'Excluir permanentemente';
+  document.getElementById('modal-confirmar-btn').className = 'btn btn-perigo';
+  document.getElementById('modal-confirmar-btn').onclick = () => confirmarExcluirFamilia(id);
+  abrirModal('modal-confirmar');
+}
+
+function confirmarExcluirFamilia(id) {
+  if (usandoFirebase && db) {
+    // Excluir família e suas entregas
+    db.collection('familias').doc(id).delete()
+      .then(() => {
+        fecharModal('modal-confirmar');
+        toast('Família excluída. Histórico de entregas preservado.', 'ok');
+      })
+      .catch(e => toast('Erro ao excluir: ' + e.message, 'erro'));
+  } else {
+    familias = familias.filter(f => f.id !== id);
+    // Entregas preservadas intencionalmente para histórico
+    salvarLocal();
+    renderFamilias();
+    fecharModal('modal-confirmar');
+    toast('Família excluída. Histórico de entregas preservado.', 'ok');
+  }
+}
+
+
+function mostrarBloqueioFirebase(tipo, familia, entsTemp) {
+  // Substituir temporariamente o array de entregas para reutilizar mostrarBloqueio
+  const entsBkp = entregas;
+  entregas = entsTemp;
+  mostrarBloqueio(tipo, familia);
+  entregas = entsBkp;
+}
+
+
+function alertarVizinhanca(vizinhos, onConfirmar) {
+  const lista = vizinhos.slice(0, 5).map(v =>
+    `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem;">
+      <strong>${esc(v.nome)}</strong> — nº ${esc(v.numero || '?')}
+      <span style="font-size:0.78rem;color:var(--cinza-texto);"> · ${esc((v.paroquia||'').replace('Paróquia ','').split('(')[0].trim())}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('modal-confirmar-titulo').textContent = '⚠️ Atenção — Mesma Rua';
+  document.getElementById('modal-confirmar-msg').innerHTML =
+    `Encontramos <strong>${vizinhos.length}</strong> família(s) cadastrada(s) na mesma rua com número diferente:<br><br>
+    ${lista}<br>
+    <span style="font-size:0.82rem;color:var(--cinza-texto);">
+      Os nomes dessas famílias serão adicionados automaticamente ao campo <strong>Observações</strong> do novo cadastro.<br>
+      Deseja continuar com o cadastro?
+    </span>`;
+  document.getElementById('modal-confirmar-btn').textContent = 'Sim, continuar';
+  document.getElementById('modal-confirmar-btn').className = 'btn btn-primario';
+  document.getElementById('modal-confirmar-btn').onclick = () => {
+    fecharModal('modal-confirmar');
+    onConfirmar();
+  };
+  abrirModal('modal-confirmar');
+}
+
+
+// ══════════════════════════════════════════════════════
+// MÓDULO FOTO
+// ══════════════════════════════════════════════════════
+
+function resetarFotoModal() {
+  document.getElementById('f-foto-preview').style.display = 'none';
+  document.getElementById('f-foto-placeholder').style.display = 'flex';
+  document.getElementById('f-foto-remover').style.display = 'none';
+  document.getElementById('f-foto-input').value = '';
+  document.getElementById('f-foto-url').value = '';
+  document.getElementById('f-foto-loading').style.display = 'none';
+}
+
+function carregarFotoModal(url) {
+  const preview = document.getElementById('f-foto-preview');
+  const placeholder = document.getElementById('f-foto-placeholder');
+  const btnRemover = document.getElementById('f-foto-remover');
+  if (url) {
+    preview.src = url;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+    btnRemover.style.display = 'inline-flex';
+    document.getElementById('f-foto-url').value = url;
+  } else {
+    resetarFotoModal();
+  }
+}
+
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  // Mostrar preview local imediatamente
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const preview = document.getElementById('f-foto-preview');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    document.getElementById('f-foto-placeholder').style.display = 'none';
+    document.getElementById('f-foto-remover').style.display = 'inline-flex';
+  };
+  reader.readAsDataURL(file);
+
+  // Upload para Firebase Storage
+  if (window.storage) {
+    const loading = document.getElementById('f-foto-loading');
+    loading.style.display = 'block';
+    const cpf = document.getElementById('f-cpf').value.replace(/\D/g, '') || Date.now();
+    const ext = file.name.split('.').pop() || 'jpg';
+    const ref = window.storage.ref(`familias/${cpf}.${ext}`);
+    ref.put(file)
+      .then(snap => snap.ref.getDownloadURL())
+      .then(url => {
+        document.getElementById('f-foto-url').value = url;
+        loading.style.display = 'none';
+        toast('Foto enviada!', 'ok');
+      })
+      .catch(e => {
+        loading.style.display = 'none';
+        toast('Erro ao enviar foto: ' + e.message, 'erro');
+      });
+  } else {
+    // Sem Storage: salvar como base64 no próprio campo (apenas local)
+    const reader2 = new FileReader();
+    reader2.onload = (e) => {
+      document.getElementById('f-foto-url').value = e.target.result;
+    };
+    reader2.readAsDataURL(file);
+  }
+}
+
+function removerFoto() {
+  resetarFotoModal();
+  toast('Foto removida.', '');
+}
+
+</script>
+</body>
+</html>
