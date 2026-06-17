@@ -793,8 +793,9 @@
         <div class="form-grupo"><label>Usuário *</label><input type="text" id="a-usuario" placeholder="login de acesso"></div>
         <div class="form-grupo"><label>Senha *</label><input type="password" id="a-senha" placeholder="senha"></div>
         <div class="form-grupo" id="grupo-a-nivel"><label>Nível</label>
-          <select id="a-nivel">
+          <select id="a-nivel" onchange="aoMudarNivelAgente(this.value)">
             <option value="responsavel">Responsável (Admin paróquia)</option>
+            <option value="admin">Admin Diocese</option>
             <option value="agente">Agente (entrada de dados)</option>
           </select>
         </div>
@@ -942,7 +943,7 @@ function aoSelecionarParoquia() {
       return a.nome.localeCompare(b.nome);
     });
     sel.innerHTML = '<option value="">Selecione seu nome</option>' +
-      usuarios.map(u => `<option value="${esc(u.usuario)}">${esc(u.nome)}${u.nivel === 'responsavel' ? ' (Responsável)' : ''}</option>`).join('');
+      usuarios.map(u => `<option value="${esc(u.usuario)}">${esc(u.nome)}${u.nivel === 'admin' ? ' (Admin Diocese)' : u.nivel === 'responsavel' ? ' (Responsável)' : ''}</option>`).join('');
   }
 
   if (usandoFirebase && db) {
@@ -1699,6 +1700,7 @@ function abrirModalAgente() {
     ? document.getElementById('a-paroquia').value
     : usuarioAtual.paroquia;
   atualizarSelectCapela(parAgente, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  aoMudarNivelAgente(document.getElementById('a-nivel').value);
   abrirModal('modal-agente');
 }
 
@@ -1708,10 +1710,12 @@ function salvarAgente() {
   const usuario = document.getElementById('a-usuario').value.trim();
   const senha = document.getElementById('a-senha').value.trim();
   const nivel = isAdmin ? document.getElementById('a-nivel').value : 'agente';
-  const paroquia = isAdmin ? document.getElementById('a-paroquia').value : usuarioAtual.paroquia;
+  const paroquiaRaw = isAdmin ? document.getElementById('a-paroquia').value : usuarioAtual.paroquia;
+  // Admin Diocese não tem paróquia específica
+  const paroquia = nivel === 'admin' ? '__admin__' : paroquiaRaw;
 
   if (!nome||!usuario||!senha) { toast('Preencha todos os campos.','erro'); return; }
-  if (isAdmin && !paroquia) { toast('Selecione a paróquia.','erro'); return; }
+  if (isAdmin && nivel !== 'admin' && !paroquia) { toast('Selecione a paróquia.','erro'); return; }
 
   const duplo = agentes.find(a => a.usuario === usuario && a.id !== document.getElementById('a-id').value);
   if (duplo) { toast('Esse nome de usuário já existe.','erro'); return; }
