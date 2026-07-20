@@ -381,6 +381,12 @@
     </div>
     <button class="btn-login" onclick="fazerLogin()">Entrar</button>
     <div class="login-erro" id="login-erro"></div>
+    <div style="margin-top:18px;text-align:center;">
+      <a href="https://caritasfranca.github.io/caritas-controle-cestas-basicas/caritas-cestas-basicas.html"
+         style="font-size:0.82rem;color:var(--cinza-texto);text-decoration:underline;display:inline-flex;align-items:center;gap:4px;">
+        🔄 Buscar versão mais recente do app
+      </a>
+    </div>
     <div id="whatsapp-compartilhar" style="display:none;margin-top:18px;">
       <a id="whatsapp-link" href="#" target="_blank"
          style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.88rem;font-weight:600;text-decoration:none;">
@@ -403,6 +409,9 @@
     </div>
     <div class="topbar-dir">
       <span class="badge-nivel" id="topbar-nivel"></span>
+      <button class="btn-sair" onclick="atualizarApp()" title="Limpar cache e recarregar" style="padding:6px 12px;font-size:0.78rem;">🔄 Atualizar</button>
+      <a href="https://caritasfranca.github.io/caritas-controle-cestas-basicas/caritas-cestas-basicas.html"
+         target="_blank" class="btn-sair" style="padding:6px 12px;font-size:0.78rem;text-decoration:none;">✨ Nova Versão</a>
       <button class="btn-sair" onclick="abrirModalSenha()" title="Alterar minha senha" style="padding:6px 10px;">🔑</button>
       <button class="btn-sair" onclick="sair()">Sair</button>
     </div>
@@ -2786,6 +2795,19 @@ function confirmarAlterarSenha() {
     fecharModal('modal-senha');
     toast('Senha alterada com sucesso! ✅', 'ok');
   }
+}
+
+
+function atualizarApp() {
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
+  }
+  toast('Atualizando...', '');
+  setTimeout(function() {
+    window.location.reload(true);
+  }, 800);
 }
 
 </script>
