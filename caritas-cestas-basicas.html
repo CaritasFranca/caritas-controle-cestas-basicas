@@ -582,7 +582,10 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
         </div>
         <div class="painel-secao">
-          <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
+            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
+          </div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
               <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Contato</th><th>Ação</th></tr></thead>
@@ -1134,7 +1137,8 @@ function mudarAba(aba) {
     carregarEstoquesFirebase(); // garante que listener está ativo
     renderEstoque(); // render imediato com dados disponíveis
     // Segundo render após Firebase responder (caso ainda não tenha dados)
-    setTimeout(renderEstoque, 1500);
+    setTimeout(renderEstoque, 500);
+    setTimeout(renderEstoque, 2000);
   }
   if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
   if (aba === 'historico') renderHistorico();
@@ -2341,7 +2345,7 @@ function renderEstoque() {
 
   if (!todasParoquias.length) {
     const vazio = '<div class="vazio"><div class="vazio-icone">🧺</div><p>Nenhum estoque registrado ainda.</p></div>';
-    tbody.innerHTML = `<tr><td colspan="4">${vazio}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${vazio}</td></tr>`;
     cardsMobile.innerHTML = vazio;
     return;
   }
@@ -2420,8 +2424,15 @@ function renderEstoque() {
   }).join('');
 
   const wrap = document.getElementById('estoque-tabela-wrap');
-  if (isMobile) { wrap.style.display = 'none'; cardsMobile.style.display = 'block'; }
-  else { wrap.style.display = ''; cardsMobile.style.display = 'none'; }
+  if (wrap) {
+    if (isMobile) {
+      wrap.style.display = 'none';
+      if (cardsMobile) cardsMobile.style.display = 'block';
+    } else {
+      wrap.style.display = '';
+      if (cardsMobile) cardsMobile.style.display = 'none';
+    }
+  }
 }
 
 // Carregar estoques do Firebase em tempo real
