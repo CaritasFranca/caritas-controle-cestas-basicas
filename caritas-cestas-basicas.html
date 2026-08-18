@@ -2348,7 +2348,8 @@ function renderEstoque() {
         ? `<span class="badge badge-ativo">✅ Sim</span>`
         : '<span class="badge" style="background:#FADBD8;color:#922B21;">🚫 Não</span>';
     // Botão solicitar: só para paróquias diferentes da própria
-    const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__';
+    const isAdminView = minhaPar === '__admin__';
+    const podeSolicitar = p !== minhaPar && comp > 0 && !solPendente;
     const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
     let btnSolicitar = '';
     if (p === minhaPar) {
@@ -3085,7 +3086,8 @@ function renderItens(lista) {
   const minhaPar = usuarioAtual.paroquia;
 
   div.innerHTML = lista.map(item => {
-    const meu = item.paroquia === minhaPar;
+    const meuItem = item.paroquia === minhaPar;
+    const meu = meuItem || minhaPar === '__admin__';
     const disponivel = item.qtdDisponivel > 0;
     const statusClass = item.status === 'solicitado' ? 'solicitado' : disponivel ? 'disponivel' : 'cedido';
     const badgeClass = item.status === 'solicitado' ? 'badge-solicitado' : disponivel ? 'badge-disponivel' : 'badge-cedido';
@@ -3101,7 +3103,6 @@ function renderItens(lista) {
       }
       acoes += `<button class="btn btn-perigo btn-sm" onclick="removerItem('${item.id}')">Remover</button>`;
     } else if (disponivel && item.status !== 'solicitado') {
-      // Outra paróquia: pode solicitar
       acoes += `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarItem('${item.id}')">📩 Solicitar</button>`;
     }
 
@@ -3167,8 +3168,19 @@ function abrirModalSolicitarItem(itemId) {
   if (!item) return;
   itemSolicitandoId = itemId;
   const parNome = (item.paroquia || '').replace('Paróquia ', '').split('(')[0].trim();
+
+  const isAdm = usuarioAtual.paroquia === '__admin__';
+  const selParHtml = isAdm
+    ? `<div class="form-grupo" style="margin-bottom:14px;">
+        <label>Solicitar em nome de qual paróquia? *</label>
+        <select id="solicitar-item-paroquia" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;">
+          ${LISTA_PAROQUIAS.filter(p => p !== item.paroquia).map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
+        </select>
+      </div>`
+    : '';
+
   document.getElementById('solicitar-item-info').innerHTML =
-    `<strong>${esc(item.descricao)}</strong><br>Disponível: ${item.qtdDisponivel} ${esc(item.unidade || 'unidade(s)')} — ${esc(parNome)}`;
+    `<strong>${esc(item.descricao)}</strong><br>Disponível: ${item.qtdDisponivel} ${esc(item.unidade || 'unidade(s)')} — ${esc(parNome)}${selParHtml}`;
   document.getElementById('solicitar-qtd').value = '';
   document.getElementById('solicitar-motivo').value = '';
   abrirModal('modal-solicitar-item');
@@ -3185,8 +3197,15 @@ function confirmarSolicitarItem() {
   if (!item) return;
   if (qtd > item.qtdDisponivel) { toast(`Quantidade maior que o disponível (${item.qtdDisponivel}).`, 'erro'); return; }
 
+  // Determinar paróquia solicitante (admin pode escolher)
+  const selParSolic = document.getElementById('solicitar-cestas-paroquia');
+  const parSolicitante = (usuarioAtual.paroquia === '__admin__' && selParSolic)
+    ? selParSolic.value
+    : usuarioAtual.paroquia;
+  if (!parSolicitante) { toast('Selecione a paróquia solicitante.', 'erro'); return; }
+
   const solicitacao = {
-    paroquiaSolicitante: usuarioAtual.paroquia,
+    paroquiaSolicitante: parSolicitante,
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     qtd, motivo,
     status: 'pendente',
@@ -3354,8 +3373,25 @@ function abrirModalSolicitarCestas(paroquia) {
   cestaSolicitandoPar = paroquia;
   const parNome = paroquia.replace('Paróquia ','').replace('Santuário Diocesano ','').replace('Sé Catedral ','').split('(')[0].trim();
   const telInfo = e.telComp ? `<br>📱 Contato: <a href="https://wa.me/55${e.telComp.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);">${esc(e.telComp)}</a>` : '';
+
+  // Para admin: mostrar seletor de paróquia solicitante
+  const isAdm = usuarioAtual.paroquia === '__admin__';
+  const selParHtml = isAdm
+    ? `<div class="form-grupo" style="margin-bottom:14px;">
+        <label>Solicitar em nome de qual paróquia? *</label>
+        <select id="solicitar-cestas-paroquia" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;">
+          ${LISTA_PAROQUIAS.filter(p => p !== paroquia).map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
+        </select>
+      </div>`
+    : '';
+
   document.getElementById('solicitar-cestas-info').innerHTML =
     `<strong>${esc(parNome)}</strong> tem <strong>${e.compartilhavel} cesta(s)</strong> disponíveis para compartilhar.${telInfo}`;
+
+  // Inserir seletor de paróquia antes do campo qtd
+  const extraEl = document.getElementById('solicitar-cestas-extra');
+  if (extraEl) extraEl.innerHTML = selParHtml;
+
   document.getElementById('solicitar-cestas-qtd').value = '';
   document.getElementById('solicitar-cestas-motivo').value = '';
   abrirModal('modal-solicitar-cestas');
@@ -3374,8 +3410,13 @@ function confirmarSolicitarCestas() {
     toast('Quantidade maior que o disponível (' + e.compartilhavel + ' cestas).', 'erro'); return;
   }
 
+  const selParItem = document.getElementById('solicitar-item-paroquia');
+  const parSolicitanteItem = (usuarioAtual.paroquia === '__admin__' && selParItem)
+    ? selParItem.value : usuarioAtual.paroquia;
+  if (!parSolicitanteItem) { toast('Selecione a paróquia solicitante.', 'erro'); return; }
+
   const solicitacao = {
-    paroquiaSolicitante: usuarioAtual.paroquia,
+    paroquiaSolicitante: parSolicitanteItem,
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     qtd, motivo,
     status: 'pendente',
@@ -3390,7 +3431,7 @@ function confirmarSolicitarCestas() {
       toast('Solicitação enviada! A paróquia será notificada no chat. ✅', 'ok');
       // Notificar no chat
       const parNome = cestaSolicitandoPar.replace('Paróquia ','').split('(')[0].trim();
-      const solNome = usuarioAtual.paroquia.replace('Paróquia ','').split('(')[0].trim();
+      const solNome = parSolicitante.replace('Paróquia ','').split('(')[0].trim();
       db.collection('chat').add({
         texto: '📩 Solicitação de cestas: ' + solNome + ' solicita ' + qtd + ' cesta(s) de ' + parNome + '. Motivo: ' + motivo,
         usuario: 'Sistema',
@@ -3645,6 +3686,7 @@ function formatarTelefone(input) {
     </div>
     <div class="modal-body">
       <div id="solicitar-cestas-info" class="aviso aviso-info" style="margin-bottom:14px;"></div>
+      <div id="solicitar-cestas-extra"></div>
       <div class="form-grupo">
         <label>Quantidade desejada *</label>
         <input type="number" id="solicitar-cestas-qtd" min="1" placeholder="Quantas cestas você precisa?">
