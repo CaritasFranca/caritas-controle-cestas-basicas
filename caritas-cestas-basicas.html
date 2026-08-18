@@ -585,10 +585,7 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
         </div>
         <div class="painel-secao">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
-            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
-          </div>
+          <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
               <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Contato</th><th>Ação</th></tr></thead>
@@ -1137,11 +1134,11 @@ function mudarAba(aba) {
   document.getElementById('aba-' + aba).classList.add('ativa');
   if (aba === 'familias') renderFamilias();
   if (aba === 'estoque') {
-    carregarEstoquesFirebase(); // garante que listener está ativo
-    renderEstoque(); // render imediato com dados disponíveis
-    // Segundo render após Firebase responder (caso ainda não tenha dados)
-    setTimeout(renderEstoque, 500);
-    setTimeout(renderEstoque, 2000);
+    carregarEstoquesFirebase();
+    renderEstoque();
+    setTimeout(renderEstoque, 800);
+    setTimeout(renderEstoque, 2500);
+    setTimeout(renderEstoque, 5000);
   }
   if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
   if (aba === 'historico') renderHistorico();
@@ -2454,7 +2451,7 @@ function carregarEstoquesFirebase() {
   estoquesUnsubscribe = db.collection('estoques').onSnapshot(snap => {
     estoques = {};
     snap.forEach(d => { estoques[d.id] = d.data(); });
-    // Renderizar após breve delay
+    renderEstoque();
     setTimeout(renderEstoque, 300);
   });
 }
@@ -3095,8 +3092,8 @@ function mudarAbaEstoque(aba) {
   if (aba === 'itens') {
     carregarItens();
   } else {
-    // Garantir que o painel cestas está visível antes de renderizar
     setTimeout(renderEstoque, 100);
+    setTimeout(renderEstoque, 1000);
   }
 }
 
