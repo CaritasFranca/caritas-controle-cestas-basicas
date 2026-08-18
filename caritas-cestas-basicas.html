@@ -400,7 +400,7 @@
       </select>
     </div>
     <div id="login-campo-usuario-admin" style="display:none;">
-      <input type="text" id="login-usuario-texto" placeholder="Usuário" autocomplete="off" style="width:100%;padding:11px 14px;border:1.5px solid var(--cinza-medio);border-radius:var(--radius);font-size:0.95rem;margin-bottom:12px;outline:none;color:var(--preto-suave);">
+      <input type="text" id="login-usuario-texto" placeholder="Usuário (ex: admin)" autocomplete="off" style="width:100%;padding:11px 14px;border:1.5px solid #D5D8DC;border-radius:10px;font-size:0.95rem;margin-bottom:12px;outline:none;color:#1A252F;background:#fff;box-sizing:border-box;display:block;">
     </div>
     <div id="login-carregando" style="display:none;font-size:0.82rem;color:var(--cinza-texto);margin-bottom:10px;text-align:left;">Carregando usuários...</div>
     <div class="senha-wrap">
@@ -2283,9 +2283,7 @@ function descontarEstoque(paroquia) {
 function renderEstoque() {
   const par = usuarioAtual.paroquia;
   const isAdmin = par === '__admin__';
-  // DEBUG temporário
-  const tbody = document.getElementById('tabela-estoque-paroquias');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:blue;padding:8px;">Carregando... estoques=' + Object.keys(estoques).length + ' LISTA=' + (typeof LISTA_PAROQUIAS !== "undefined" ? LISTA_PAROQUIAS.length : "N/A") + ' isAdmin=' + isAdmin + '</td></tr>';
+
 
   // Botões: só admin e responsável podem lançar/compartilhar
   const divBotoes = document.getElementById('estoque-botoes');
