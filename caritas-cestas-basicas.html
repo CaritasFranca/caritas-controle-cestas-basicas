@@ -2328,6 +2328,7 @@ function renderEstoque() {
   // Painel compartilhamento — todas as paróquias
   const tbody = document.getElementById('tabela-estoque-paroquias');
   const cardsMobile = document.getElementById('estoque-cards-mobile');
+  if (!tbody) return; // painel não está visível ainda
   const isMobile = window.innerWidth <= 640;
 
   // Admin vê todas as paróquias da diocese; outros veem as que têm estoque/famílias
@@ -2432,8 +2433,8 @@ function carregarEstoquesFirebase() {
   db.collection('estoques').onSnapshot(snap => {
     estoques = {};
     snap.forEach(d => { estoques[d.id] = d.data(); });
-    // Sempre re-renderizar quando dados chegam
-    renderEstoque();
+    // Renderizar após breve delay para garantir DOM pronto
+    setTimeout(renderEstoque, 200);
   });
 }
 
@@ -3073,7 +3074,8 @@ function mudarAbaEstoque(aba) {
   if (aba === 'itens') {
     carregarItens();
   } else {
-    renderEstoque();
+    // Garantir que o painel cestas está visível antes de renderizar
+    setTimeout(renderEstoque, 100);
   }
 }
 
