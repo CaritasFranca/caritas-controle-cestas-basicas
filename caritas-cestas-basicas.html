@@ -301,6 +301,24 @@
   .btn-instalar-flutuante{position:fixed;bottom:20px;right:20px;background:var(--vermelho);color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(192,57,43,0.4);z-index:1000;display:flex;align-items:center;gap:6px;transition:transform 0.2s;}
   .btn-instalar-flutuante:hover{transform:scale(1.05);}
   @media(max-width:640px){.btn-instalar-flutuante{bottom:16px;right:16px;padding:10px 14px;font-size:0.78rem;}}
+
+  /* ── ITENS DIVERSOS ─────────────────────────────────── */
+  .estoque-abas{display:flex;gap:0;border-bottom:2px solid var(--cinza-medio);margin-bottom:16px;}
+  .estoque-aba{padding:9px 20px;font-size:0.88rem;font-weight:600;cursor:pointer;border:none;background:none;color:var(--cinza-texto);border-bottom:3px solid transparent;transition:all 0.2s;}
+  .estoque-aba.ativa{color:var(--vermelho);border-bottom-color:var(--vermelho);}
+  .item-card{background:#fff;border-radius:var(--radius);box-shadow:var(--sombra);padding:14px 16px;margin-bottom:10px;border-left:4px solid var(--cinza-medio);}
+  .item-card.disponivel{border-left-color:var(--verde);}
+  .item-card.solicitado{border-left-color:#E67E22;}
+  .item-card.cedido{border-left-color:var(--cinza-medio);opacity:0.7;}
+  .item-card-titulo{font-weight:700;font-size:0.92rem;margin-bottom:4px;}
+  .item-card-info{font-size:0.78rem;color:var(--cinza-texto);display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:8px;}
+  .item-card-acoes{display:flex;gap:8px;flex-wrap:wrap;}
+  .badge-disponivel{background:#D5F5E3;color:#1E8449;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;}
+  .badge-solicitado{background:#FDEBD0;color:#E67E22;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;}
+  .badge-cedido{background:#F2F3F4;color:#566573;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;}
+  .card-resumo{background:#fff;border-radius:var(--radius);box-shadow:var(--sombra);padding:14px 16px;border-left:4px solid var(--cinza-medio);}
+  .card-resumo .numero{font-size:1.8rem;font-weight:700;line-height:1;}
+  .card-resumo .label{font-size:0.78rem;color:var(--cinza-texto);margin-top:4px;}
 </style>
 </head>
 <body>
@@ -543,29 +561,47 @@
 
     <!-- ESTOQUE -->
     <div class="secao" id="secao-estoque">
-      <div class="secao-header">
-        <h2 style="font-size:1.15rem;font-weight:700;">🧺 Estoque de Cestas</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="estoque-botoes">
-          <button class="btn btn-secundario" id="btn-lancar-estoque" onclick="abrirModalEstoque()">+ Lançar Recebimento</button>
-          <button class="btn btn-primario" id="btn-compartilhar-estoque" onclick="abrirModalCompartilhar()">🤝 Definir disponível p/ compartilhar</button>
+      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:14px;">📦 Estoque</h2>
+
+      <!-- Sub-abas -->
+      <div class="estoque-abas">
+        <button class="estoque-aba ativa" id="estoque-aba-cestas" onclick="mudarAbaEstoque('cestas')">🧺 Cestas Básicas</button>
+        <button class="estoque-aba" id="estoque-aba-itens" onclick="mudarAbaEstoque('itens')">🎁 Itens Diversos</button>
+      </div>
+
+      <!-- PAINEL CESTAS -->
+      <div id="estoque-painel-cestas">
+        <div class="secao-header" style="margin-bottom:14px;">
+          <span></span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="estoque-botoes">
+            <button class="btn btn-secundario" id="btn-lancar-estoque" onclick="abrirModalEstoque()">+ Lançar Recebimento</button>
+            <button class="btn btn-primario" id="btn-compartilhar-estoque" onclick="abrirModalCompartilhar()">🤝 Definir disponível p/ compartilhar</button>
+          </div>
+        </div>
+        <div id="estoque-resumo-proprio" style="display:none;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
+        </div>
+        <div class="painel-secao">
+          <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
+          <div class="tabela-wrap" id="estoque-tabela-wrap">
+            <table>
+              <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Atualizado em</th></tr></thead>
+              <tbody id="tabela-estoque-paroquias"></tbody>
+            </table>
+          </div>
+          <div id="estoque-cards-mobile"></div>
         </div>
       </div>
 
-      <!-- Resumo próprio: saldo interno + compartilhável -->
-      <div id="estoque-resumo-proprio" style="display:none;margin-bottom:20px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
-      </div>
-
-      <!-- Painel de compartilhamento — visível para TODAS as paróquias -->
-      <div class="painel-secao">
-        <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
-        <div class="tabela-wrap" id="estoque-tabela-wrap">
-          <table>
-            <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Atualizado em</th></tr></thead>
-            <tbody id="tabela-estoque-paroquias"></tbody>
-          </table>
+      <!-- PAINEL ITENS DIVERSOS -->
+      <div id="estoque-painel-itens" style="display:none;">
+        <div class="secao-header" style="margin-bottom:14px;">
+          <span style="font-size:0.88rem;color:var(--cinza-texto);">Alimentos, roupas, medicamentos, equipamentos e outros itens</span>
+          <button class="btn btn-primario" onclick="abrirModalNovoItem()">+ Registrar Item</button>
         </div>
-        <div id="estoque-cards-mobile"></div>
+        <div id="itens-lista">
+          <div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.</p></div>
+        </div>
       </div>
     </div>
 
@@ -746,8 +782,12 @@
         <select id="estoque-capela"></select>
       </div>
       <div class="form-grupo">
+        <label>Doador / Origem (opcional)</label>
+        <input type="text" id="estoque-doador" placeholder="Ex: CRAS, Campanha Páscoa, Empresa X...">
+      </div>
+      <div class="form-grupo">
         <label>Observação (opcional)</label>
-        <input type="text" id="estoque-obs" placeholder="Ex: Doação CRAS, Campanha Páscoa...">
+        <input type="text" id="estoque-obs" placeholder="Ex: Entregue na sede da paróquia...">
       </div>
       <div id="estoque-saldo-atual-modal" style="margin-top:14px;font-size:0.88rem;color:var(--cinza-texto);"></div>
     </div>
@@ -2069,6 +2109,7 @@ function abrirModalEstoque() {
   document.getElementById('estoque-saldo-atual-modal').innerHTML = txt;
   document.getElementById('estoque-qtd').value = '';
   document.getElementById('estoque-obs').value = '';
+  if(document.getElementById('estoque-doador')) document.getElementById('estoque-doador').value = '';
   atualizarSelectCapela(usuarioAtual.paroquia, 'estoque-capela', '', true, '— Toda a paróquia —');
   abrirModal('modal-estoque');
 }
@@ -2077,6 +2118,7 @@ function confirmarLancamentoEstoque() {
   const qtd = parseInt(document.getElementById('estoque-qtd').value);
   if (!qtd || qtd < 1) { toast('Informe uma quantidade válida.', 'erro'); return; }
   const obs = document.getElementById('estoque-obs').value.trim();
+  const doadorEstoque = document.getElementById('estoque-doador') ? document.getElementById('estoque-doador').value.trim() : '';
   const capelaEstoque = (document.getElementById('estoque-capela') || {}).value || '';
   const par = usuarioAtual.paroquia;
   const saldoAnterior = getSaldoParoquia(par) || 0;
@@ -2087,6 +2129,7 @@ function confirmarLancamentoEstoque() {
     ultimaAtualizacao: new Date().toISOString().slice(0,10),
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     obs,
+    doador: doadorEstoque,
     capelaOrigem: capelaEstoque
   };
   salvarEstoque(par, dados, () => toast(`+${qtd} cestas lançadas. Saldo interno: ${novoSaldo}`, 'ok'));
@@ -2877,6 +2920,246 @@ function mostrarBtnInstalar() {
   if (btn) btn.style.display = 'flex';
 }
 
+
+// ══════════════════════════════════════════════════════
+// MÓDULO ITENS DIVERSOS
+// ══════════════════════════════════════════════════════
+
+let itensDiversos = [];
+let itensListener = null;
+let itemSolicitandoId = null;
+
+function mudarAbaEstoque(aba) {
+  document.getElementById('estoque-painel-cestas').style.display = aba === 'cestas' ? '' : 'none';
+  document.getElementById('estoque-painel-itens').style.display = aba === 'itens' ? '' : 'none';
+  document.getElementById('estoque-aba-cestas').className = 'estoque-aba' + (aba === 'cestas' ? ' ativa' : '');
+  document.getElementById('estoque-aba-itens').className = 'estoque-aba' + (aba === 'itens' ? ' ativa' : '');
+  if (aba === 'itens') {
+    carregarItens();
+  }
+}
+
+function carregarItens() {
+  if (!usandoFirebase || !db) { renderItens([]); return; }
+  if (itensListener) return;
+  itensListener = db.collection('itens_diversos')
+    .where('ativo', '==', true)
+    .orderBy('criadoEm', 'desc')
+    .onSnapshot(snap => {
+      itensDiversos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderItens(itensDiversos);
+    });
+}
+
+function renderItens(lista) {
+  const div = document.getElementById('itens-lista');
+  if (!lista.length) {
+    div.innerHTML = '<div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.<br>Clique em <strong>+ Registrar Item</strong> para adicionar.</p></div>';
+    return;
+  }
+
+  const minhaPar = usuarioAtual.paroquia;
+
+  div.innerHTML = lista.map(item => {
+    const meu = item.paroquia === minhaPar;
+    const disponivel = item.qtdDisponivel > 0;
+    const statusClass = item.status === 'solicitado' ? 'solicitado' : disponivel ? 'disponivel' : 'cedido';
+    const badgeClass = item.status === 'solicitado' ? 'badge-solicitado' : disponivel ? 'badge-disponivel' : 'badge-cedido';
+    const badgeLabel = item.status === 'solicitado' ? '📩 Solicitado' : disponivel ? '✅ Disponível' : '📦 Cedido';
+    const parNome = (item.paroquia || '').replace('Paróquia ', '').split('(')[0].trim();
+
+    let acoes = '';
+    if (meu) {
+      // Dono do item: ver solicitações pendentes
+      const pendentes = (item.solicitacoes || []).filter(s => s.status === 'pendente');
+      if (pendentes.length) {
+        acoes += `<button class="btn btn-primario btn-sm" onclick="verSolicitacoes('${item.id}')">📩 ${pendentes.length} solicitação(ões)</button>`;
+      }
+      acoes += `<button class="btn btn-perigo btn-sm" onclick="removerItem('${item.id}')">Remover</button>`;
+    } else if (disponivel && item.status !== 'solicitado') {
+      // Outra paróquia: pode solicitar
+      acoes += `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarItem('${item.id}')">📩 Solicitar</button>`;
+    }
+
+    return `<div class="item-card ${statusClass}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div class="item-card-titulo">${esc(item.categoria || '')} — ${esc(item.descricao)}</div>
+        <span class="badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+      <div class="item-card-info">
+        <span>📦 ${item.qtdDisponivel} ${esc(item.unidade || 'unidade(s)')}</span>
+        <span>📍 ${esc(parNome)}</span>
+        ${item.doador ? `<span>🤝 ${esc(item.doador)}</span>` : ''}
+        ${item.obs ? `<span>💬 ${esc(item.obs)}</span>` : ''}
+      </div>
+      <div class="item-card-acoes">${acoes}</div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalNovoItem() {
+  ['item-categoria','item-descricao','item-qtd','item-doador','item-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('item-unidade').value = 'unidade(s)';
+  abrirModal('modal-novo-item');
+}
+
+function confirmarNovoItem() {
+  const categoria = document.getElementById('item-categoria').value;
+  const descricao = document.getElementById('item-descricao').value.trim();
+  const qtd = parseInt(document.getElementById('item-qtd').value);
+  const unidade = document.getElementById('item-unidade').value;
+  const doador = document.getElementById('item-doador').value.trim();
+  const obs = document.getElementById('item-obs').value.trim();
+
+  if (!categoria) { toast('Selecione uma categoria.', 'erro'); return; }
+  if (!descricao) { toast('Descreva o item.', 'erro'); return; }
+  if (!qtd || qtd < 1) { toast('Informe a quantidade.', 'erro'); return; }
+
+  const item = {
+    categoria, descricao, qtdTotal: qtd, qtdDisponivel: qtd,
+    unidade, doador, obs,
+    paroquia: usuarioAtual.paroquia,
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    status: 'disponivel',
+    solicitacoes: [],
+    ativo: true,
+    criadoEm: new Date().toISOString()
+  };
+
+  if (usandoFirebase && db) {
+    db.collection('itens_diversos').add(item)
+      .then(() => { fecharModal('modal-novo-item'); toast('Item registrado! ✅', 'ok'); })
+      .catch(e => toast('Erro: ' + e.message, 'erro'));
+  } else {
+    toast('Firebase necessário para registrar itens.', 'erro');
+  }
+}
+
+function abrirModalSolicitarItem(itemId) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  itemSolicitandoId = itemId;
+  const parNome = (item.paroquia || '').replace('Paróquia ', '').split('(')[0].trim();
+  document.getElementById('solicitar-item-info').innerHTML =
+    `<strong>${esc(item.descricao)}</strong><br>Disponível: ${item.qtdDisponivel} ${esc(item.unidade || 'unidade(s)')} — ${esc(parNome)}`;
+  document.getElementById('solicitar-qtd').value = '';
+  document.getElementById('solicitar-motivo').value = '';
+  abrirModal('modal-solicitar-item');
+}
+
+function confirmarSolicitarItem() {
+  if (!itemSolicitandoId) return;
+  const qtd = parseInt(document.getElementById('solicitar-qtd').value);
+  const motivo = document.getElementById('solicitar-motivo').value.trim();
+  if (!qtd || qtd < 1) { toast('Informe a quantidade desejada.', 'erro'); return; }
+  if (!motivo) { toast('Informe o motivo da solicitação.', 'erro'); return; }
+
+  const item = itensDiversos.find(i => i.id === itemSolicitandoId);
+  if (!item) return;
+  if (qtd > item.qtdDisponivel) { toast(`Quantidade maior que o disponível (${item.qtdDisponivel}).`, 'erro'); return; }
+
+  const solicitacao = {
+    paroquiaSolicitante: usuarioAtual.paroquia,
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    qtd, motivo,
+    status: 'pendente',
+    criadoEm: new Date().toISOString()
+  };
+
+  const novasSolic = [...(item.solicitacoes || []), solicitacao];
+
+  db.collection('itens_diversos').doc(itemSolicitandoId).update({
+    solicitacoes: novasSolic,
+    status: 'solicitado'
+  }).then(() => {
+    fecharModal('modal-solicitar-item');
+    toast('Solicitação enviada! A paróquia será notificada no chat.', 'ok');
+    // Notificar no chat geral
+    if (db) {
+      const parNome = (item.paroquia || '').replace('Paróquia ', '').split('(')[0].trim();
+      db.collection('chat').add({
+        texto: `📩 Nova solicitação de item: "${item.descricao}" (${qtd} ${item.unidade}) — de ${usuarioAtual.paroquia} para ${item.paroquia}`,
+        usuario: 'Sistema',
+        paroquia: 'Diocese',
+        ts: new Date().toISOString(),
+        anexo: null
+      }).catch(() => {});
+    }
+  }).catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function verSolicitacoes(itemId) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  const pendentes = (item.solicitacoes || []).filter(s => s.status === 'pendente');
+  if (!pendentes.length) { toast('Nenhuma solicitação pendente.', ''); return; }
+
+  const lista = pendentes.map((s, idx) =>
+    `<div style="padding:10px 0;border-bottom:1px solid var(--cinza-claro);">
+      <strong>${esc(s.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim())}</strong>
+      solicita <strong>${s.qtd} ${esc(item.unidade || 'unidade(s)')}</strong><br>
+      <span style="font-size:0.82rem;color:var(--cinza-texto);">Motivo: ${esc(s.motivo)}</span><br>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-verde btn-sm" onclick="aprovarSolicitacao('${itemId}',${idx})">✅ Aprovar</button>
+        <button class="btn btn-perigo btn-sm" onclick="recusarSolicitacao('${itemId}',${idx})">✕ Recusar</button>
+      </div>
+    </div>`
+  ).join('');
+
+  document.getElementById('modal-confirmar-titulo').textContent = '📩 Solicitações Pendentes';
+  document.getElementById('modal-confirmar-msg').innerHTML = lista;
+  document.getElementById('modal-confirmar-btn').style.display = 'none';
+  abrirModal('modal-confirmar');
+}
+
+function aprovarSolicitacao(itemId, idx) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  const solic = item.solicitacoes[idx];
+  const novasSolic = item.solicitacoes.map((s, i) => i === idx ? {...s, status: 'aprovado'} : s);
+  const novaQtd = Math.max(0, item.qtdDisponivel - solic.qtd);
+  const novoStatus = novaQtd > 0 ? 'disponivel' : 'cedido';
+
+  db.collection('itens_diversos').doc(itemId).update({
+    solicitacoes: novasSolic,
+    qtdDisponivel: novaQtd,
+    status: novoStatus
+  }).then(() => {
+    fecharModal('modal-confirmar');
+    toast(`Aprovado! ${solic.qtd} ${item.unidade} cedido(s) para ${solic.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim()}.`, 'ok');
+    // Notificar chat
+    db.collection('chat').add({
+      texto: `✅ Item aprovado: "${item.descricao}" (${solic.qtd} ${item.unidade}) cedido de ${item.paroquia} para ${solic.paroquiaSolicitante}`,
+      usuario: 'Sistema',
+      paroquia: 'Diocese',
+      ts: new Date().toISOString(),
+      anexo: null
+    }).catch(() => {});
+  }).catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function recusarSolicitacao(itemId, idx) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  const novasSolic = item.solicitacoes.map((s, i) => i === idx ? {...s, status: 'recusado'} : s);
+  const aindaPendente = novasSolic.some(s => s.status === 'pendente');
+  db.collection('itens_diversos').doc(itemId).update({
+    solicitacoes: novasSolic,
+    status: aindaPendente ? 'solicitado' : 'disponivel'
+  }).then(() => { fecharModal('modal-confirmar'); toast('Solicitação recusada.', ''); })
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function removerItem(itemId) {
+  if (!confirm('Remover este item do estoque?')) return;
+  db.collection('itens_diversos').doc(itemId).update({ ativo: false })
+    .then(() => toast('Item removido.', 'ok'))
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
 </script>
 
 <!-- MODAL ALTERAR SENHA -->
@@ -2952,6 +3235,90 @@ function mostrarBtnInstalar() {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secundario" onclick="fecharModal('modal-instalar')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO ITEM DIVERSO -->
+<div class="modal-overlay" id="modal-novo-item">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🎁 Registrar Item</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-novo-item')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grupo">
+        <label>Categoria *</label>
+        <select id="item-categoria">
+          <option value="">Selecione...</option>
+          <option>🥛 Alimento — Laticínios</option>
+          <option>🍝 Alimento — Massas e Grãos</option>
+          <option>🥫 Alimento — Enlatados</option>
+          <option>🛢️ Alimento — Óleos e Condimentos</option>
+          <option>👕 Roupas e Calçados</option>
+          <option>🍼 Higiene e Fraldas</option>
+          <option>💊 Medicamentos</option>
+          <option>♿ Equipamentos de Saúde</option>
+          <option>🛏️ Móveis e Utensílios</option>
+          <option>📦 Outros</option>
+        </select>
+      </div>
+      <div class="form-grupo">
+        <label>Descrição do item *</label>
+        <input type="text" id="item-descricao" placeholder="Ex: Leite integral caixa 1L, Cadeira de rodas, Fralda geriátrica M...">
+      </div>
+      <div class="form-grupo">
+        <label>Quantidade *</label>
+        <input type="number" id="item-qtd" min="1" placeholder="Ex: 20">
+      </div>
+      <div class="form-grupo">
+        <label>Unidade</label>
+        <select id="item-unidade">
+          <option value="unidade(s)">Unidade(s)</option>
+          <option value="kg">Kg</option>
+          <option value="litro(s)">Litro(s)</option>
+          <option value="caixa(s)">Caixa(s)</option>
+          <option value="pacote(s)">Pacote(s)</option>
+          <option value="peça(s)">Peça(s)</option>
+        </select>
+      </div>
+      <div class="form-grupo">
+        <label>Doador / Origem</label>
+        <input type="text" id="item-doador" placeholder="Ex: Família Silva, Empresa X, Campanha...">
+      </div>
+      <div class="form-grupo">
+        <label>Observação</label>
+        <input type="text" id="item-obs" placeholder="Estado do item, validade, condições...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-novo-item')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarNovoItem()">✅ Registrar Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SOLICITAR ITEM -->
+<div class="modal-overlay" id="modal-solicitar-item">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📩 Solicitar Item</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-solicitar-item')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="solicitar-item-info" class="aviso aviso-info" style="margin-bottom:14px;"></div>
+      <div class="form-grupo">
+        <label>Quantidade desejada *</label>
+        <input type="number" id="solicitar-qtd" min="1" placeholder="Quantos itens você precisa?">
+      </div>
+      <div class="form-grupo">
+        <label>Motivo da solicitação *</label>
+        <input type="text" id="solicitar-motivo" placeholder="Ex: Família em situação de vulnerabilidade, idoso acamado...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-solicitar-item')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarSolicitarItem()">📩 Enviar Solicitação</button>
     </div>
   </div>
 </div>
