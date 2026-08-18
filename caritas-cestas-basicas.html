@@ -584,7 +584,7 @@
         <div class="painel-secao">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
-            <button class="btn btn-secundario btn-sm" onclick="debugRenderEstoque()">🔄 Atualizar tabela</button>
+            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
           </div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
@@ -2231,7 +2231,8 @@ function abrirModalCompartilhar() {
 }
 
 function confirmarCompartilhamento() {
-  const par = usuarioAtual.paroquia;
+  const par = getParoquiaEstoque();
+  if (!par) { toast('Selecione uma paróquia.', 'erro'); return; }
   const qtd = parseInt(document.getElementById('compartilhar-qtd').value);
   if (isNaN(qtd) || qtd < 0) { toast('Informe um número válido (0 ou mais).', 'erro'); return; }
   const saldo = getSaldoParoquia(par);
@@ -2246,7 +2247,7 @@ function confirmarCompartilhamento() {
     telComp: tel,
     capelaComp: (document.getElementById('comp-capela') || {}).value || '',
     ultimaAtualizacaoComp: new Date().toISOString().slice(0,10),
-    responsavelComp: usuarioAtual.nome || usuarioAtual.usuario
+    responsavelComp: (usuarioAtual.nome || usuarioAtual.usuario) + (usuarioAtual.paroquia === '__admin__' ? ' (Admin Diocese)' : '')
   };
   salvarEstoque(par, dados, () => toast(`Disponível para compartilhar: ${qtd} cesta(s)`, 'ok'));
   fecharModal('modal-compartilhar');
@@ -2336,7 +2337,11 @@ function renderEstoque() {
   // Painel compartilhamento — todas as paróquias
   const tbody = document.getElementById('tabela-estoque-paroquias');
   const cardsMobile = document.getElementById('estoque-cards-mobile');
-  if (!tbody) return; // painel não está visível ainda
+  if (!tbody) {
+    // Tentar novamente em 500ms se painel ainda não está visível
+    setTimeout(renderEstoque, 500);
+    return;
+  }
   const isMobile = window.innerWidth <= 640;
 
   // Admin vê todas as paróquias da diocese; outros veem as que têm estoque/famílias
@@ -3546,17 +3551,6 @@ function formatarTelefone(input) {
 }
 
 
-function debugRenderEstoque() {
-  var tbody = document.getElementById('tabela-estoque-paroquias');
-  var info = 'tbody=' + (tbody ? 'OK' : 'NULL') +
-    ' | LISTA=' + LISTA_PAROQUIAS.length +
-    ' | estoques=' + Object.keys(estoques).length +
-    ' | admin=' + (usuarioAtual.paroquia === '__admin__');
-  
-  if (!tbody) {
-    alert('PROBLEMA: tbody não encontrado!\n' + info);
-    return;
-  }
   
   // Preencher diretamente sem chamar renderEstoque
   var isAdmin = usuarioAtual.paroquia === '__admin__';
@@ -3566,17 +3560,7 @@ function debugRenderEstoque() {
     alert('Lista vazia!\n' + info);
     return;
   }
-  
-  tbody.innerHTML = lista.map(function(p) {
-    var e = estoques[p];
-    var comp = e && e.compartilhavel != null ? e.compartilhavel : null;
-    return '<tr><td>' + p + '</td><td>' + (comp !== null ? comp : '—') + '</td><td>—</td><td>—</td><td>—</td></tr>';
-  }).join('');
-  
-  alert('OK! ' + lista.length + ' paróquias renderizadas.\n' + info);
-}
-
-</script>
+  </script>
 
 <!-- MODAL ALTERAR SENHA -->
 <div class="modal-overlay" id="modal-senha">
