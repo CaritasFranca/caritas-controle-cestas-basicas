@@ -597,7 +597,7 @@
       <div id="estoque-painel-itens" style="display:none;">
         <div class="secao-header" style="margin-bottom:14px;">
           <span style="font-size:0.88rem;color:var(--cinza-texto);">Alimentos, roupas, medicamentos, equipamentos e outros itens</span>
-          <button class="btn btn-primario" onclick="abrirModalNovoItem()">+ Registrar Item</button>
+          <button class="btn btn-primario" id="btn-novo-item" onclick="abrirModalNovoItem()">+ Registrar Item</button>
         </div>
         <div id="itens-lista">
           <div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.</p></div>
@@ -951,7 +951,7 @@ let estoques = {}; // { paroquia: { saldo, ultimaAtualizacao, responsavel } }
 
 // ---------- USUÁRIOS PADRÃO ----------
 const usuariosPadrao = [
-  { usuario: 'admin', senha: 'caritas2026', nivel: 'admin', nome: 'Administrador Diocese', paroquia: '__admin__' }
+  { usuario: 'admin', senha: 'caritas2026', nivel: 'admin', nome: 'Cáritas - Administrador Diocese', paroquia: '__admin__' }
 ];
 
 // ---------- LOGIN ----------
@@ -1237,9 +1237,10 @@ function renderFamilias() {
       <td><span class="badge ${f.inativo ? 'badge-inativo' : 'badge-ativo'}">${f.inativo ? 'Inativa' : 'Ativa'}</span></td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-secundario btn-sm" onclick="verFamilia('${f.id}')">Ver</button>
-        ${podeEditar() ? `<button class="btn btn-primario btn-sm" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
-        ${podeEditar() ? `<button class="btn btn-sm ${f.inativo ? 'btn-verde' : 'btn-perigo'}" onclick="toggleInativar('${f.id}')">${f.inativo ? 'Reativar' : 'Inativar'}</button>` : ''}
-        ${podeEditar() ? `<button class="btn btn-sm" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
+        ${podeEditarFamilia(f) ? `<button class="btn btn-primario btn-sm" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
+        ${f.inativo && podeReativar() ? `<button class="btn btn-verde btn-sm" onclick="toggleInativar('${f.id}')">Reativar</button>` : ''}
+        ${!f.inativo && podeInativar() ? `<button class="btn btn-perigo btn-sm" onclick="toggleInativar('${f.id}')">Inativar</button>` : ''}
+        ${podeExcluir() ? `<button class="btn btn-sm" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
       </td>
     </tr>`).join('');
 
@@ -1254,9 +1255,10 @@ function renderFamilias() {
       </div>
       <div class="familia-card-acoes">
         <button class="btn btn-secundario" onclick="verFamilia('${f.id}')">Ver</button>
-        ${podeEditar() ? `<button class="btn btn-primario" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
-        ${podeEditar() ? `<button class="btn ${f.inativo ? 'btn-verde' : 'btn-perigo'}" onclick="toggleInativar('${f.id}')">${f.inativo ? 'Reativar' : 'Inativar'}</button>` : ''}
-        ${podeEditar() ? `<button class="btn" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
+        ${podeEditarFamilia(f) ? `<button class="btn btn-primario" onclick="editarFamilia('${f.id}')">Editar</button>` : ''}
+        ${f.inativo && podeReativar() ? `<button class="btn btn-verde" onclick="toggleInativar('${f.id}')">Reativar</button>` : ''}
+        ${!f.inativo && podeInativar() ? `<button class="btn btn-perigo" onclick="toggleInativar('${f.id}')">Inativar</button>` : ''}
+        ${podeExcluir() ? `<button class="btn" style="background:#7D3C98;color:#fff;" onclick="excluirFamilia('${f.id}')">Excluir</button>` : ''}
       </div>
     </div>`).join('');
 
@@ -1274,6 +1276,29 @@ function renderFamilias() {
 function podeEditar() {
   return usuarioAtual.nivel === 'admin' || usuarioAtual.nivel === 'responsavel' || usuarioAtual.nivel === 'agente';
 }
+function isAdmin() { return usuarioAtual.nivel === 'admin'; }
+function isResponsavel() { return usuarioAtual.nivel === 'responsavel'; }
+function isAgente() { return usuarioAtual.nivel === 'agente'; }
+// Excluir família: só admin
+function podeExcluir() { return isAdmin(); }
+// Inativar família: admin e responsável
+function podeInativar() { return isAdmin() || isResponsavel(); }
+// Reativar família: admin e responsável
+function podeReativar() { return isAdmin() || isResponsavel(); }
+// Editar família: admin, responsável e agente (só da própria paróquia)
+function podeEditarFamilia(f) {
+  if (isAdmin()) return true;
+  if (isResponsavel() || isAgente()) return f.paroquia === usuarioAtual.paroquia;
+  return false;
+}
+// Exportar CSV: só admin
+function podeExportar() { return isAdmin(); }
+// Estoque lançar: admin e responsável
+function podeLancarEstoque() { return true; }
+// Estoque compartilhar: admin e responsável
+function podeCompartilharEstoque() { return true; }
+// Registrar item diverso: admin e responsável
+function podeRegistrarItem() { return true; }
 
 function abrirModalFamilia() {
   document.getElementById('modal-familia-titulo').textContent = 'Nova Família';
@@ -1721,7 +1746,10 @@ function renderAgentes() {
   const tbody = document.getElementById('tabela-agentes');
 
   document.getElementById('th-paroquia-agente').style.display = isAdmin ? '' : 'none';
-  document.getElementById('titulo-agentes').textContent = isAdmin ? 'Responsáveis e Agentes — Diocese' : 'Agentes da Paróquia';
+  document.getElementById('titulo-agentes').textContent = isAdmin ? 'Responsáveis e Agentes — Diocese' : 'Usuários da Paróquia';
+  // Botão novo usuário só para admin
+  var btnNovo = document.getElementById('btn-novo-agente');
+  if (btnNovo) btnNovo.style.display = (isAdmin || usuarioAtual.nivel === 'responsavel') ? '' : 'none';
 
   // Incluir admins padrão (hardcoded) na lista quando for admin
   const adminsFixos = isAdmin ? usuariosPadrao.map(u => ({
@@ -1730,7 +1758,7 @@ function renderAgentes() {
 
   const lista = isAdmin
     ? [...adminsFixos, ...agentes]
-    : agentes.filter(a => a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
+    : agentes.filter(a => a.paroquia === usuarioAtual.paroquia && a.nivel !== 'admin');
 
   const colspan = isAdmin ? 5 : 4;
   if (!lista.length) {
@@ -1746,15 +1774,34 @@ function renderAgentes() {
   });
 
   tbody.innerHTML = ordenado.map(a => {
-    const podeRemover = isAdmin || (usuarioAtual.nivel === 'responsavel' && a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
     const badgeClass = a.nivel === 'admin' ? 'badge-admin' : a.nivel === 'responsavel' ? 'badge-ativo' : 'badge-inativo';
     const badgeLabel = a.nivel === 'admin' ? 'Admin Diocese' : a.nivel === 'responsavel' ? 'Responsável' : 'Agente';
+
+    // Ações baseadas no nível
+    let acoesHtml = '';
+    if (a.fixo) {
+      acoesHtml = '<span style="font-size:0.75rem;color:var(--cinza-texto);">Principal</span>';
+    } else if (isAdmin) {
+      // Admin pode editar e remover qualquer um
+      acoesHtml = `<button class="btn btn-primario btn-sm" onclick="editarAgente('${a.id}')">Editar</button>
+        <button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>`;
+    } else if (usuarioAtual.nivel === 'responsavel') {
+      // Responsável: vê todos da paróquia, pode solicitar remoção de agentes
+      if (a.paroquia === usuarioAtual.paroquia && a.nivel === 'agente') {
+        acoesHtml = `<button class="btn btn-secundario btn-sm" onclick="solicitarRemocaoAgente('${a.id}','${esc(a.nome)}')">Solicitar remoção</button>`;
+      } else {
+        acoesHtml = '<span style="font-size:0.75rem;color:var(--cinza-texto);">—</span>';
+      }
+    } else {
+      acoesHtml = '<span style="font-size:0.75rem;color:var(--cinza-texto);">—</span>';
+    }
+
     return `<tr>
       <td><strong>${esc(a.nome)}</strong></td>
       <td><code>${esc(a.usuario)}</code></td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
       ${isAdmin ? `<td style="font-size:0.82rem;color:var(--cinza-texto);">${a.nivel === 'admin' ? '<em>Diocese de Franca</em>' : esc(a.paroquia||'—')}</td>` : ''}
-      <td>${(podeRemover && !a.fixo) ? `<button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>` : a.fixo ? '<span style="font-size:0.75rem;color:var(--cinza-texto);">Principal</span>' : '—'}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">${acoesHtml}</td>
     </tr>`;
   }).join('');
 }
@@ -1791,6 +1838,10 @@ function abrirModalAgente() {
     selPar.innerHTML = LISTA_PAROQUIAS.map(p => `<option>${p}</option>`).join('');
     selPar.onchange = () => atualizarSelectCapela(selPar.value, 'a-capela', '', true, '— Nenhuma (matriz) —');
     document.getElementById('grupo-a-paroquia').style.display = '';
+  } else if (usuarioAtual.nivel === 'responsavel') {
+    grupoNivel.style.display = 'none';
+    document.getElementById('a-nivel').innerHTML = '<option value="agente">Agente (entrada de dados)</option>';
+    document.getElementById('grupo-a-paroquia').style.display = 'none';
   } else {
     grupoNivel.style.display = 'none';
     document.getElementById('a-nivel').innerHTML = '<option value="agente">Agente</option>';
@@ -1823,10 +1874,13 @@ function salvarAgente() {
   const capela = capelaSel ? capelaSel.value : '';
   const agente = { nome, usuario, senha, nivel, paroquia, capela };
 
+  const idEdicao = document.getElementById('a-id').value;
   if (usandoFirebase && db) {
-    db.collection('agentes').add(agente)
-      .then(()=>{ fecharModal('modal-agente'); toast('Usuário cadastrado!','ok'); })
-      .catch(e=>toast('Erro: '+e.message,'erro'));
+    const prom = idEdicao
+      ? db.collection('agentes').doc(idEdicao).update(agente)
+      : db.collection('agentes').add(agente);
+    prom.then(()=>{ fecharModal('modal-agente'); toast(idEdicao ? 'Usuário atualizado!' : 'Usuário cadastrado!','ok'); })
+        .catch(e=>toast('Erro: '+e.message,'erro'));
   } else {
     agente.id = 'a_' + Date.now();
     agentes.push(agente);
@@ -2120,7 +2174,8 @@ function confirmarLancamentoEstoque() {
   const obs = document.getElementById('estoque-obs').value.trim();
   const doadorEstoque = document.getElementById('estoque-doador') ? document.getElementById('estoque-doador').value.trim() : '';
   const capelaEstoque = (document.getElementById('estoque-capela') || {}).value || '';
-  const par = usuarioAtual.paroquia;
+  const par = getParoquiaEstoque();
+  if (!par) { toast('Selecione uma paróquia.', 'erro'); return; }
   const saldoAnterior = getSaldoParoquia(par) || 0;
   const novoSaldo = saldoAnterior + qtd;
   const dados = {
@@ -2213,9 +2268,25 @@ function renderEstoque() {
   const par = usuarioAtual.paroquia;
   const isAdmin = par === '__admin__';
 
-  // Botões: ocultos para admin
+  // Botões: só admin e responsável podem lançar/compartilhar
   const divBotoes = document.getElementById('estoque-botoes');
-  if (divBotoes) divBotoes.style.display = isAdmin ? 'none' : '';
+  if (divBotoes) divBotoes.style.display = podeLancarEstoque() ? '' : 'none';
+  // Para admin: mostrar seletor de paróquia antes dos botões
+  var selParAdm = document.getElementById('estoque-sel-paroquia-admin');
+  if (isAdmin) {
+    if (!selParAdm) {
+      var div = document.createElement('div');
+      div.id = 'estoque-sel-paroquia-admin';
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;';
+      div.innerHTML = '<label style="font-size:0.85rem;font-weight:600;">Paróquia:</label>' +
+        '<select id="estoque-paroquia-admin-sel" style="flex:1;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;">' +
+        LISTA_PAROQUIAS.map(function(p){ return '<option value="' + p + '">' + p + '</option>'; }).join('') +
+        '</select>';
+      divBotoes.parentNode.insertBefore(div, divBotoes);
+    }
+  } else {
+    if (selParAdm) selParAdm.remove();
+  }
 
   // Resumo interno (só da própria paróquia)
   const divResumo = document.getElementById('estoque-resumo-proprio');
@@ -2257,7 +2328,8 @@ function renderEstoque() {
   tbody.innerHTML = todasParoquias.map(p => {
     const e = estoques[p];
     const comp = e != null && e.compartilhavel != null ? e.compartilhavel : null;
-    const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || '—') : '—';
+    const dataRaw = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || '') : '';
+    const data = dataRaw && dataRaw !== '—' ? dataRaw.substring(0,10) : '—';
     const dispLabel = comp === null
       ? '<span class="badge badge-inativo">Não informado</span>'
       : comp > 0
@@ -2681,6 +2753,7 @@ function mostrarBloqueio(tipo, familia) {
 
 
 function excluirFamilia(id) {
+  if (!podeExcluir()) { toast('Apenas administradores podem excluir famílias.', 'erro'); return; }
   const f = familias.find(x => x.id === id);
   if (!f) return;
   const entsFam = entregas.filter(e => e.familiaId === id);
@@ -2952,6 +3025,8 @@ function carregarItens() {
 }
 
 function renderItens(lista) {
+  const btnItem = document.getElementById('btn-novo-item');
+  if (btnItem) btnItem.style.display = podeRegistrarItem() ? '' : 'none';
   const div = document.getElementById('itens-lista');
   if (!lista.length) {
     div.innerHTML = '<div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.<br>Clique em <strong>+ Registrar Item</strong> para adicionar.</p></div>';
@@ -3158,6 +3233,66 @@ function removerItem(itemId) {
   db.collection('itens_diversos').doc(itemId).update({ ativo: false })
     .then(() => toast('Item removido.', 'ok'))
     .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+
+function editarAgente(id) {
+  const a = agentes.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('a-nome').value = a.nome || '';
+  document.getElementById('a-usuario').value = a.usuario || '';
+  document.getElementById('a-senha').value = a.senha || '';
+  document.getElementById('a-id').value = a.id;
+  document.getElementById('modal-agente-titulo').textContent = 'Editar Usuário';
+
+  const grupoNivel = document.getElementById('grupo-a-nivel');
+  grupoNivel.style.display = '';
+  document.getElementById('a-nivel').innerHTML = `
+    <option value="responsavel">Responsável (Admin paróquia)</option>
+    <option value="agente">Agente (entrada de dados)</option>
+    <option value="admin">Admin Diocese</option>`;
+  document.getElementById('a-nivel').value = a.nivel || 'agente';
+
+  const selPar = document.getElementById('a-paroquia');
+  selPar.innerHTML = LISTA_PAROQUIAS.map(p => `<option>${p}</option>`).join('');
+  selPar.value = a.paroquia || '';
+  selPar.onchange = () => atualizarSelectCapela(selPar.value, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  document.getElementById('grupo-a-paroquia').style.display = a.nivel === 'admin' ? 'none' : '';
+  atualizarSelectCapela(a.paroquia || '', 'a-capela', a.capela || '', true, '— Nenhuma (matriz) —');
+  aoMudarNivelAgente(a.nivel || 'agente');
+  abrirModal('modal-agente');
+}
+
+// ── 6. Solicitar remoção de agente (responsável → admin) ─────────────────
+function solicitarRemocaoAgente(id, nome) {
+  document.getElementById('modal-confirmar-titulo').textContent = '📩 Solicitar Remoção';
+  document.getElementById('modal-confirmar-msg').innerHTML =
+    `Você deseja solicitar aos <strong>Administradores da Diocese</strong> a remoção do agente <strong>"${esc(nome)}"</strong>?<br><br>
+    <span style="font-size:0.82rem;color:var(--cinza-texto);">Uma mensagem será enviada no chat para os admins avaliarem.</span>`;
+  document.getElementById('modal-confirmar-btn').textContent = 'Sim, solicitar';
+  document.getElementById('modal-confirmar-btn').className = 'btn btn-primario';
+  document.getElementById('modal-confirmar-btn').style.display = '';
+  document.getElementById('modal-confirmar-btn').onclick = () => enviarSolicitacaoRemocao(id, nome);
+  abrirModal('modal-confirmar');
+}
+
+function enviarSolicitacaoRemocao(id, nome) {
+  fecharModal('modal-confirmar');
+  if (usandoFirebase && db) {
+    db.collection('chat').add({
+      texto: '🔔 Solicitação de remoção de agente: "' + nome + '" da ' + usuarioAtual.paroquia + '. Solicitado por: ' + (usuarioAtual.nome || usuarioAtual.usuario) + '. ID: ' + id,
+      usuario: 'Sistema',
+      paroquia: 'Diocese',
+      ts: new Date().toISOString(),
+      anexo: null,
+      tipo: 'solicitacao_remocao',
+      agenteId: id,
+      agenteNome: nome
+    }).then(() => toast('Solicitação enviada para os administradores da diocese! ✅', 'ok'))
+      .catch(e => toast('Erro ao enviar: ' + e.message, 'erro'));
+  } else {
+    toast('Firebase necessário para enviar solicitações.', 'erro');
+  }
 }
 
 </script>
