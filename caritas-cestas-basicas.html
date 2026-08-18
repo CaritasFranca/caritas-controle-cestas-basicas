@@ -1131,11 +1131,10 @@ function mudarAba(aba) {
   document.getElementById('aba-' + aba).classList.add('ativa');
   if (aba === 'familias') renderFamilias();
   if (aba === 'estoque') {
-    // Se Firebase ainda não carregou estoques, iniciar listener
-    if (usandoFirebase && db && Object.keys(estoques).length === 0) {
-      carregarEstoquesFirebase();
-    }
-    renderEstoque();
+    carregarEstoquesFirebase(); // garante que listener está ativo
+    renderEstoque(); // render imediato com dados disponíveis
+    // Segundo render após Firebase responder (caso ainda não tenha dados)
+    setTimeout(renderEstoque, 1500);
   }
   if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
   if (aba === 'historico') renderHistorico();
@@ -2424,16 +2423,16 @@ function renderEstoque() {
 }
 
 // Carregar estoques do Firebase em tempo real
+let estoquesListenerAtivo = false;
 function carregarEstoquesFirebase() {
   if (!usandoFirebase || !db) return;
+  if (estoquesListenerAtivo) return; // evitar duplicar listener
+  estoquesListenerAtivo = true;
   db.collection('estoques').onSnapshot(snap => {
     estoques = {};
     snap.forEach(d => { estoques[d.id] = d.data(); });
-    // Sempre renderizar se a aba estiver visível
-    const secao = document.getElementById('secao-estoque');
-    if (secao && (secao.classList.contains('ativa') || secao.style.display !== 'none')) {
-      renderEstoque();
-    }
+    // Sempre re-renderizar quando dados chegam
+    renderEstoque();
   });
 }
 
