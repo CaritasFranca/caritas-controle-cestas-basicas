@@ -1130,7 +1130,13 @@ function mudarAba(aba) {
   document.getElementById('secao-' + aba).classList.add('ativa');
   document.getElementById('aba-' + aba).classList.add('ativa');
   if (aba === 'familias') renderFamilias();
-  if (aba === 'estoque') renderEstoque();
+  if (aba === 'estoque') {
+    // Se Firebase ainda não carregou estoques, iniciar listener
+    if (usandoFirebase && db && Object.keys(estoques).length === 0) {
+      carregarEstoquesFirebase();
+    }
+    renderEstoque();
+  }
   if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
   if (aba === 'historico') renderHistorico();
   if (aba === 'agentes') renderAgentes();
@@ -2423,7 +2429,11 @@ function carregarEstoquesFirebase() {
   db.collection('estoques').onSnapshot(snap => {
     estoques = {};
     snap.forEach(d => { estoques[d.id] = d.data(); });
-    if (document.getElementById('secao-estoque').classList.contains('ativa')) renderEstoque();
+    // Sempre renderizar se a aba estiver visível
+    const secao = document.getElementById('secao-estoque');
+    if (secao && (secao.classList.contains('ativa') || secao.style.display !== 'none')) {
+      renderEstoque();
+    }
   });
 }
 
@@ -3062,6 +3072,8 @@ function mudarAbaEstoque(aba) {
   document.getElementById('estoque-aba-itens').className = 'estoque-aba' + (aba === 'itens' ? ' ativa' : '');
   if (aba === 'itens') {
     carregarItens();
+  } else {
+    renderEstoque();
   }
 }
 
