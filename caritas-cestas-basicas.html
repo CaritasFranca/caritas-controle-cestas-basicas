@@ -2324,10 +2324,13 @@ function renderEstoque() {
   const cardsMobile = document.getElementById('estoque-cards-mobile');
   const isMobile = window.innerWidth <= 640;
 
-  const todasParoquias = [...new Set([
-    ...Object.keys(estoques),
-    ...familias.map(f => f.paroquia).filter(Boolean)
-  ])].filter(p => p && p !== '__admin__').sort();
+  // Admin vê todas as paróquias da diocese; outros veem as que têm estoque/famílias
+  const todasParoquias = isAdmin
+    ? LISTA_PAROQUIAS.slice().sort()
+    : [...new Set([
+        ...Object.keys(estoques),
+        ...familias.map(f => f.paroquia).filter(Boolean)
+      ])].filter(p => p && p !== '__admin__').sort();
 
   if (!todasParoquias.length) {
     const vazio = '<div class="vazio"><div class="vazio-icone">🧺</div><p>Nenhum estoque registrado ainda.</p></div>';
