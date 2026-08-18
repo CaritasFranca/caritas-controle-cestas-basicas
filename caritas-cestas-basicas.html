@@ -585,7 +585,7 @@
           <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
-              <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Atualizado em</th></tr></thead>
+              <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Contato</th><th>Ação</th></tr></thead>
               <tbody id="tabela-estoque-paroquias"></tbody>
             </table>
           </div>
@@ -818,6 +818,10 @@
       <div class="form-grupo" id="grupo-comp-capela" style="display:none;">
         <label>Cape la / Comunidade de origem (opcional)</label>
         <select id="comp-capela"></select>
+      </div>
+      <div class="form-grupo">
+        <label>📱 Telefone de contato *</label>
+        <input type="tel" id="compartilhar-tel" placeholder="Ex: (16) 99999-9999" oninput="formatarTelefone(this)">
       </div>
       <div class="form-grupo">
         <label>Observação (opcional)</label>
@@ -2081,9 +2085,14 @@ function formatarCPF(el) {
 }
 
 function formatarData(d) {
-  if (!d) return '—';
-  const [a,m,dia] = d.split('-');
-  return `${dia}/${m}/${a}`;
+  if (!d || d === '—' || d === 'undefined') return '—';
+  try {
+    const parts = d.substring(0,10).split('-');
+    if (parts.length !== 3) return '—';
+    const [a,m,dia] = parts;
+    if (!a || !m || !dia || a === 'undefined') return '—';
+    return dia + '/' + m + '/' + a;
+  } catch(e) { return '—'; }
 }
 
 // Fechar modal clicando fora
@@ -2204,6 +2213,7 @@ function abrirModalCompartilhar() {
   document.getElementById('compartilhar-saldo-info').innerHTML = info;
   document.getElementById('compartilhar-qtd').value = comp !== null ? comp : '';
   document.getElementById('compartilhar-obs').value = (estoques[par] && estoques[par].obsComp) || '';
+  document.getElementById('compartilhar-tel').value = (estoques[par] && estoques[par].telComp) || '';
   atualizarSelectCapela(par, 'comp-capela', (estoques[par] && estoques[par].capelaComp) || '', true, '— Toda a paróquia —');
   abrirModal('modal-compartilhar');
 }
@@ -2221,6 +2231,7 @@ function confirmarCompartilhamento() {
     ...(estoques[par] || {}),
     compartilhavel: qtd,
     obsComp: obs,
+    telComp: tel,
     capelaComp: (document.getElementById('comp-capela') || {}).value || '',
     ultimaAtualizacaoComp: new Date().toISOString().slice(0,10),
     responsavelComp: usuarioAtual.nome || usuarioAtual.usuario
@@ -2325,21 +2336,45 @@ function renderEstoque() {
     return;
   }
 
+  const minhaPar = usuarioAtual.paroquia;
   tbody.innerHTML = todasParoquias.map(p => {
     const e = estoques[p];
     const comp = e != null && e.compartilhavel != null ? e.compartilhavel : null;
     const dataRaw = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || '') : '';
-    const data = dataRaw && dataRaw !== '—' ? dataRaw.substring(0,10) : '—';
+    const data = (dataRaw && dataRaw !== '—' && dataRaw !== 'undefined') ? dataRaw.substring(0,10) : '—';
     const dispLabel = comp === null
       ? '<span class="badge badge-inativo">Não informado</span>'
       : comp > 0
         ? `<span class="badge badge-ativo">✅ Sim</span>`
         : '<span class="badge" style="background:#FADBD8;color:#922B21;">🚫 Não</span>';
+    // Botão solicitar: só para paróquias diferentes da própria
+    const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__';
+    const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
+    let btnSolicitar = '';
+    if (p === minhaPar) {
+      // Ver solicitações recebidas
+      const pendentes = e && e.solicitacoes ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
+      if (pendentes.length) {
+        btnSolicitar = `<button class="btn btn-primario btn-sm" onclick="verSolicitacoesCestas('${esc(p)}')">📩 ${pendentes.length} solicitação(ões)</button>`;
+      }
+    } else if (solPendente) {
+      btnSolicitar = '<span style="font-size:0.75rem;color:#E67E22;">📩 Solicitado</span>';
+    } else if (podeSolicitar) {
+      btnSolicitar = `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar</button>`;
+    }
+    const tel = e && e.telComp ? e.telComp : null;
+    const telHtml = tel
+      ? `<a href="https://wa.me/55${tel.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);font-size:0.82rem;display:flex;align-items:center;gap:4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          ${esc(tel)}
+        </a>`
+      : '<span style="font-size:0.75rem;color:var(--cinza-texto);">—</span>';
     return `<tr>
       <td style="max-width:200px;word-break:break-word;">${esc(p)}</td>
       <td><strong>${comp !== null ? comp : '—'}</strong></td>
       <td>${dispLabel}</td>
-      <td style="font-size:0.82rem;color:var(--cinza-texto);">${formatarData(data)}</td>
+      <td>${telHtml}</td>
+      <td>${btnSolicitar}</td>
     </tr>`;
   }).join('');
 
@@ -2348,14 +2383,28 @@ function renderEstoque() {
     const comp = e != null && e.compartilhavel != null ? e.compartilhavel : null;
     const cor = comp === null ? 'var(--cinza-medio)' : comp > 0 ? 'var(--verde)' : '#C0392B';
     const disp = comp === null ? 'Não informado' : comp > 0 ? '✅ Disponível' : '🚫 Sem cestas';
-    const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao) : null;
+    const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || null) : null;
+    const dataStr = data && data !== 'undefined' ? data.substring(0,10) : null;
+    const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__';
+    const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
+    const pendentes = (p === minhaPar && e && e.solicitacoes) ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
+    let btnMobile = '';
+    if (p === minhaPar && pendentes.length) {
+      btnMobile = `<button class="btn btn-primario btn-sm" onclick="verSolicitacoesCestas('${esc(p)}')">📩 ${pendentes.length} solicitação(ões)</button>`;
+    } else if (solPendente) {
+      btnMobile = '<span style="font-size:0.75rem;color:#E67E22;">📩 Solicitado</span>';
+    } else if (podeSolicitar) {
+      btnMobile = `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar</button>`;
+    }
     return `<div class="familia-card" style="border-left-color:${cor};display:block;">
       <div class="familia-card-nome" style="font-size:0.85rem;">${esc(p)}</div>
       <div class="familia-card-info">
         <span>🤝 ${comp !== null ? comp + ' cesta(s) p/ compartilhar' : 'Sem dados'}</span>
         <span>${disp}</span>
-        ${data ? '<span>📅 ' + formatarData(data) + '</span>' : ''}
+        ${e && e.telComp ? '<span>📱 ' + esc(e.telComp) + '</span>' : ''}
+        ${dataStr ? '<span>📅 ' + formatarData(dataStr) + '</span>' : ''}
       </div>
+      ${btnMobile ? '<div style="margin-top:8px;">' + btnMobile + '</div>' : ''}
     </div>`;
   }).join('');
 
@@ -3295,6 +3344,135 @@ function enviarSolicitacaoRemocao(id, nome) {
   }
 }
 
+
+// ── SOLICITAÇÃO DE CESTAS ──────────────────────────────────────────────────
+let cestaSolicitandoPar = null;
+
+function abrirModalSolicitarCestas(paroquia) {
+  const e = estoques[paroquia];
+  if (!e) return;
+  cestaSolicitandoPar = paroquia;
+  const parNome = paroquia.replace('Paróquia ','').replace('Santuário Diocesano ','').replace('Sé Catedral ','').split('(')[0].trim();
+  const telInfo = e.telComp ? `<br>📱 Contato: <a href="https://wa.me/55${e.telComp.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);">${esc(e.telComp)}</a>` : '';
+  document.getElementById('solicitar-cestas-info').innerHTML =
+    `<strong>${esc(parNome)}</strong> tem <strong>${e.compartilhavel} cesta(s)</strong> disponíveis para compartilhar.${telInfo}`;
+  document.getElementById('solicitar-cestas-qtd').value = '';
+  document.getElementById('solicitar-cestas-motivo').value = '';
+  abrirModal('modal-solicitar-cestas');
+}
+
+function confirmarSolicitarCestas() {
+  if (!cestaSolicitandoPar) return;
+  const qtd = parseInt(document.getElementById('solicitar-cestas-qtd').value);
+  const motivo = document.getElementById('solicitar-cestas-motivo').value.trim();
+  if (!qtd || qtd < 1) { toast('Informe a quantidade desejada.', 'erro'); return; }
+  if (!motivo) { toast('Informe o motivo da solicitação.', 'erro'); return; }
+
+  const e = estoques[cestaSolicitandoPar];
+  if (!e) return;
+  if (qtd > e.compartilhavel) {
+    toast('Quantidade maior que o disponível (' + e.compartilhavel + ' cestas).', 'erro'); return;
+  }
+
+  const solicitacao = {
+    paroquiaSolicitante: usuarioAtual.paroquia,
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    qtd, motivo,
+    status: 'pendente',
+    criadoEm: new Date().toISOString()
+  };
+
+  const novasSolic = [...(e.solicitacoes || []), solicitacao];
+
+  db.collection('estoques').doc(cestaSolicitandoPar).update({ solicitacoes: novasSolic })
+    .then(() => {
+      fecharModal('modal-solicitar-cestas');
+      toast('Solicitação enviada! A paróquia será notificada no chat. ✅', 'ok');
+      // Notificar no chat
+      const parNome = cestaSolicitandoPar.replace('Paróquia ','').split('(')[0].trim();
+      const solNome = usuarioAtual.paroquia.replace('Paróquia ','').split('(')[0].trim();
+      db.collection('chat').add({
+        texto: '📩 Solicitação de cestas: ' + solNome + ' solicita ' + qtd + ' cesta(s) de ' + parNome + '. Motivo: ' + motivo,
+        usuario: 'Sistema',
+        paroquia: 'Diocese',
+        ts: new Date().toISOString(),
+        anexo: null
+      }).catch(() => {});
+    })
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function verSolicitacoesCestas(paroquia) {
+  const e = estoques[paroquia];
+  if (!e) return;
+  const pendentes = (e.solicitacoes || []).filter(s => s.status === 'pendente');
+  if (!pendentes.length) { toast('Nenhuma solicitação pendente.', ''); return; }
+
+  const lista = pendentes.map((s, idx) => {
+    const solNome = s.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim();
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--cinza-claro);">
+      <strong>${esc(solNome)}</strong> solicita <strong>${s.qtd} cesta(s)</strong><br>
+      <span style="font-size:0.82rem;color:var(--cinza-texto);">Motivo: ${esc(s.motivo)}</span><br>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-verde btn-sm" onclick="aprovarSolicitacaoCestas('${esc(paroquia)}',${idx})">✅ Aprovar</button>
+        <button class="btn btn-perigo btn-sm" onclick="recusarSolicitacaoCestas('${esc(paroquia)}',${idx})">✕ Recusar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-confirmar-titulo').textContent = '📩 Solicitações de Cestas';
+  document.getElementById('modal-confirmar-msg').innerHTML = lista;
+  document.getElementById('modal-confirmar-btn').style.display = 'none';
+  abrirModal('modal-confirmar');
+}
+
+function aprovarSolicitacaoCestas(paroquia, idx) {
+  const e = estoques[paroquia];
+  if (!e) return;
+  const solic = e.solicitacoes[idx];
+  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {...s, status: 'aprovado'} : s);
+  const novoComp = Math.max(0, (e.compartilhavel || 0) - solic.qtd);
+  const novoSaldo = Math.max(0, (e.saldo || 0) - solic.qtd);
+
+  db.collection('estoques').doc(paroquia).update({
+    solicitacoes: novasSolic,
+    compartilhavel: novoComp,
+    saldo: novoSaldo
+  }).then(() => {
+    fecharModal('modal-confirmar');
+    const solNome = solic.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim();
+    const parNome = paroquia.replace('Paróquia ','').split('(')[0].trim();
+    toast('Aprovado! ' + solic.qtd + ' cesta(s) cedida(s) para ' + solNome + '.', 'ok');
+    db.collection('chat').add({
+      texto: '✅ Cestas aprovadas: ' + solic.qtd + ' cesta(s) de ' + parNome + ' cedidas para ' + solNome,
+      usuario: 'Sistema',
+      paroquia: 'Diocese',
+      ts: new Date().toISOString(),
+      anexo: null
+    }).catch(() => {});
+  }).catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function recusarSolicitacaoCestas(paroquia, idx) {
+  const e = estoques[paroquia];
+  if (!e) return;
+  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {...s, status: 'recusado'} : s);
+  db.collection('estoques').doc(paroquia).update({ solicitacoes: novasSolic })
+    .then(() => { fecharModal('modal-confirmar'); toast('Solicitação recusada.', ''); })
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+
+function formatarTelefone(input) {
+  var v = input.value.replace(/\D/g,'').substring(0,11);
+  if (v.length <= 10) {
+    v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+  } else {
+    v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+  }
+  input.value = v;
+}
+
 </script>
 
 <!-- MODAL ALTERAR SENHA -->
@@ -3454,6 +3632,31 @@ function enviarSolicitacaoRemocao(id, nome) {
     <div class="modal-footer">
       <button class="btn btn-secundario" onclick="fecharModal('modal-solicitar-item')">Cancelar</button>
       <button class="btn btn-primario" onclick="confirmarSolicitarItem()">📩 Enviar Solicitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SOLICITAR CESTAS -->
+<div class="modal-overlay" id="modal-solicitar-cestas">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📩 Solicitar Cestas</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-solicitar-cestas')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="solicitar-cestas-info" class="aviso aviso-info" style="margin-bottom:14px;"></div>
+      <div class="form-grupo">
+        <label>Quantidade desejada *</label>
+        <input type="number" id="solicitar-cestas-qtd" min="1" placeholder="Quantas cestas você precisa?">
+      </div>
+      <div class="form-grupo">
+        <label>Motivo da solicitação *</label>
+        <input type="text" id="solicitar-cestas-motivo" placeholder="Ex: Famílias em vulnerabilidade, campanha especial...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-solicitar-cestas')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarSolicitarCestas()">📩 Enviar Solicitação</button>
     </div>
   </div>
 </div>
