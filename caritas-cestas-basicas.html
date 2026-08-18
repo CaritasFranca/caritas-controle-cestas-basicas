@@ -2303,6 +2303,7 @@ function renderEstoque() {
         '<select id="estoque-paroquia-admin-sel" style="flex:1;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;">' +
         LISTA_PAROQUIAS.map(function(p){ return '<option value="' + p + '">' + p + '</option>'; }).join('') +
         '</select>';
+      div.querySelector('select').onchange = function() { renderEstoque(); };
       divBotoes.parentNode.insertBefore(div, divBotoes);
     }
   } else {
@@ -2436,16 +2437,15 @@ function renderEstoque() {
 }
 
 // Carregar estoques do Firebase em tempo real
-let estoquesListenerAtivo = false;
+let estoquesUnsubscribe = null;
 function carregarEstoquesFirebase() {
   if (!usandoFirebase || !db) return;
-  if (estoquesListenerAtivo) return; // evitar duplicar listener
-  estoquesListenerAtivo = true;
-  db.collection('estoques').onSnapshot(snap => {
+  if (estoquesUnsubscribe) return; // já ouvindo
+  estoquesUnsubscribe = db.collection('estoques').onSnapshot(snap => {
     estoques = {};
     snap.forEach(d => { estoques[d.id] = d.data(); });
-    // Renderizar após breve delay para garantir DOM pronto
-    setTimeout(renderEstoque, 200);
+    // Renderizar após breve delay
+    setTimeout(renderEstoque, 300);
   });
 }
 
