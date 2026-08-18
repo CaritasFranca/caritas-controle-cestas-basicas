@@ -2283,6 +2283,9 @@ function descontarEstoque(paroquia) {
 function renderEstoque() {
   const par = usuarioAtual.paroquia;
   const isAdmin = par === '__admin__';
+  // DEBUG temporário
+  const tbody = document.getElementById('tabela-estoque-paroquias');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:blue;padding:8px;">Carregando... estoques=' + Object.keys(estoques).length + ' LISTA=' + (typeof LISTA_PAROQUIAS !== "undefined" ? LISTA_PAROQUIAS.length : "N/A") + ' isAdmin=' + isAdmin + '</td></tr>';
 
   // Botões: só admin e responsável podem lançar/compartilhar
   const divBotoes = document.getElementById('estoque-botoes');
