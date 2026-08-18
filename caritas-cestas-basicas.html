@@ -287,6 +287,20 @@
   .foto-acoes .btn{font-size:0.78rem;padding:6px 12px;}
   .foto-loading{font-size:0.78rem;color:var(--cinza-texto);margin-top:4px;display:none;}
   .badge-admin{background:#1A5276;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;}
+
+  /* ── MODAL INSTALAR APP ─────────────────────────────── */
+  .instalar-passo{display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid var(--cinza-claro);}
+  .instalar-passo:last-child{border-bottom:none;}
+  .instalar-num{background:var(--vermelho);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0;margin-top:2px;}
+  .instalar-texto{font-size:0.88rem;line-height:1.5;color:var(--preto-suave);}
+  .instalar-texto strong{color:var(--vermelho);}
+  .instalar-tabs{display:flex;gap:0;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1.5px solid var(--cinza-medio);}
+  .instalar-tab{flex:1;padding:9px;text-align:center;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;background:var(--cinza-claro);color:var(--cinza-texto);transition:all 0.2s;}
+  .instalar-tab.ativa{background:var(--vermelho);color:#fff;}
+  .instalar-dica{background:var(--amarelo-claro);border-left:3px solid #B7950B;padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.82rem;color:var(--preto-suave);margin-top:12px;}
+  .btn-instalar-flutuante{position:fixed;bottom:20px;right:20px;background:var(--vermelho);color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(192,57,43,0.4);z-index:1000;display:flex;align-items:center;gap:6px;transition:transform 0.2s;}
+  .btn-instalar-flutuante:hover{transform:scale(1.05);}
+  @media(max-width:640px){.btn-instalar-flutuante{bottom:16px;right:16px;padding:10px 14px;font-size:0.78rem;}}
 </style>
 </head>
 <body>
@@ -1029,6 +1043,7 @@ function iniciarSessao(u) {
   usuarioAtual = u;
   document.getElementById('tela-login').style.display = 'none';
   document.getElementById('tela-app').style.display = 'flex';
+  mostrarBtnInstalar();
   carregarEstoquesFirebase();
   setTimeout(iniciarChat, 1500); // inicia chat em background
   document.getElementById('topbar-paroquia-nome').textContent = u.paroquia === '__admin__' ? 'Diocese de Franca' : u.paroquia;
@@ -1668,8 +1683,13 @@ function renderAgentes() {
   document.getElementById('th-paroquia-agente').style.display = isAdmin ? '' : 'none';
   document.getElementById('titulo-agentes').textContent = isAdmin ? 'Responsáveis e Agentes — Diocese' : 'Agentes da Paróquia';
 
+  // Incluir admins padrão (hardcoded) na lista quando for admin
+  const adminsFixos = isAdmin ? usuariosPadrao.map(u => ({
+    ...u, id: null, fixo: true
+  })) : [];
+
   const lista = isAdmin
-    ? agentes
+    ? [...adminsFixos, ...agentes]
     : agentes.filter(a => a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
 
   const colspan = isAdmin ? 5 : 4;
@@ -1678,9 +1698,11 @@ function renderAgentes() {
     return;
   }
 
+  const ordemNivel = {admin: 0, responsavel: 1, agente: 2};
   const ordenado = [...lista].sort((a,b) => {
-    if (a.nivel !== b.nivel) return a.nivel === 'responsavel' ? -1 : 1;
-    return (a.paroquia||'').localeCompare(b.paroquia||'');
+    const diff = (ordemNivel[a.nivel]||9) - (ordemNivel[b.nivel]||9);
+    if (diff !== 0) return diff;
+    return (a.nome||'').localeCompare(b.nome||'');
   });
 
   tbody.innerHTML = ordenado.map(a => {
@@ -1692,7 +1714,7 @@ function renderAgentes() {
       <td><code>${esc(a.usuario)}</code></td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
       ${isAdmin ? `<td style="font-size:0.82rem;color:var(--cinza-texto);">${a.nivel === 'admin' ? '<em>Diocese de Franca</em>' : esc(a.paroquia||'—')}</td>` : ''}
-      <td>${podeRemover ? `<button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>` : '—'}</td>
+      <td>${(podeRemover && !a.fixo) ? `<button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>` : a.fixo ? '<span style="font-size:0.75rem;color:var(--cinza-texto);">Principal</span>' : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -2833,6 +2855,28 @@ function confirmarAlterarSenha() {
   }
 }
 
+
+// ── INSTALAR APP ───────────────────────────────────────────────────────────
+function abrirModalInstalar() {
+  // Detectar plataforma automaticamente
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  mudarTabInstalar(isIOS ? 'ios' : 'android');
+  abrirModal('modal-instalar');
+}
+
+function mudarTabInstalar(aba) {
+  document.getElementById('instalar-ios').style.display = aba === 'ios' ? '' : 'none';
+  document.getElementById('instalar-android').style.display = aba === 'android' ? '' : 'none';
+  document.getElementById('tab-ios').className = 'instalar-tab' + (aba === 'ios' ? ' ativa' : '');
+  document.getElementById('tab-android').className = 'instalar-tab' + (aba === 'android' ? ' ativa' : '');
+}
+
+// Mostrar botão flutuante apenas quando estiver logado
+function mostrarBtnInstalar() {
+  var btn = document.getElementById('btn-instalar');
+  if (btn) btn.style.display = 'flex';
+}
+
 </script>
 
 <!-- MODAL ALTERAR SENHA -->
@@ -2860,6 +2904,54 @@ function confirmarAlterarSenha() {
     <div class="modal-footer">
       <button class="btn btn-secundario" onclick="fecharModal('modal-senha')">Cancelar</button>
       <button class="btn btn-primario" onclick="confirmarAlterarSenha()">✅ Salvar nova senha</button>
+    </div>
+  </div>
+</div>
+
+<button class="btn-instalar-flutuante" id="btn-instalar" onclick="abrirModalInstalar()" style="display:none;">
+  📲 Adicionar à tela inicial
+</button>
+
+<!-- MODAL INSTALAR APP -->
+<div class="modal-overlay" id="modal-instalar">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📲 Adicionar à Tela Inicial</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-instalar')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.88rem;color:var(--cinza-texto);margin-bottom:14px;">
+        Crie um atalho na tela inicial do seu celular para acessar o sistema como um app, sem precisar abrir o navegador.
+      </p>
+
+      <!-- Abas iOS / Android -->
+      <div class="instalar-tabs">
+        <button class="instalar-tab" id="tab-ios" onclick="mudarTabInstalar('ios')">🍎 iPhone (iOS)</button>
+        <button class="instalar-tab" id="tab-android" onclick="mudarTabInstalar('android')">🤖 Samsung / Android</button>
+      </div>
+
+      <!-- iOS -->
+      <div id="instalar-ios">
+        <div class="instalar-passo"><div class="instalar-num">1</div><div class="instalar-texto">Abra o link do sistema no <strong>Safari</strong> (não no Chrome)</div></div>
+        <div class="instalar-passo"><div class="instalar-num">2</div><div class="instalar-texto">Toque no botão <strong>Compartilhar ⬆️</strong> na barra inferior do Safari</div></div>
+        <div class="instalar-passo"><div class="instalar-num">3</div><div class="instalar-texto">Role o menu e toque em <strong>"Adicionar à Tela de Início"</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">4</div><div class="instalar-texto">Confirme o nome e toque em <strong>"Adicionar"</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">5</div><div class="instalar-texto">O ícone da <strong>Cáritas</strong> aparecerá na tela inicial ✅</div></div>
+        <div class="instalar-dica">⚠️ No iPhone, use sempre o <strong>Safari</strong> — o Chrome não permite criar atalhos na tela inicial.</div>
+      </div>
+
+      <!-- Android -->
+      <div id="instalar-android" style="display:none;">
+        <div class="instalar-passo"><div class="instalar-num">1</div><div class="instalar-texto">Abra o link do sistema no <strong>Chrome</strong> ou <strong>Samsung Internet</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">2</div><div class="instalar-texto">Toque nos <strong>três pontinhos ⋮</strong> no canto superior direito</div></div>
+        <div class="instalar-passo"><div class="instalar-num">3</div><div class="instalar-texto">Toque em <strong>"Adicionar à tela inicial"</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">4</div><div class="instalar-texto">Confirme o nome e toque em <strong>"Adicionar"</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">5</div><div class="instalar-texto">O ícone da <strong>Cáritas</strong> aparecerá na tela inicial ✅</div></div>
+        <div class="instalar-dica">💡 No Samsung Internet: toque nas <strong>três linhas ≡</strong> → "Adicionar página a" → "Tela inicial".</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-instalar')">Fechar</button>
     </div>
   </div>
 </div>
