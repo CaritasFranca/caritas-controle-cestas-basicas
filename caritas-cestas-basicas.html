@@ -584,7 +584,7 @@
         <div class="painel-secao">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
-            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
+            <button class="btn btn-secundario btn-sm" onclick="debugRenderEstoque()">🔄 Atualizar tabela</button>
           </div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
@@ -2174,15 +2174,17 @@ function getCompartilhavel(paroquia) {
 
 // ── Lançar recebimento ────────────────────────────────
 function abrirModalEstoque() {
-  const saldoAtual = getSaldoParoquia(usuarioAtual.paroquia);
+  const par = getParoquiaEstoque();
+  if (!par) { toast('Selecione uma paróquia primeiro.', 'erro'); return; }
+  const saldoAtual = getSaldoParoquia(par);
   const txt = saldoAtual !== null
     ? `Saldo interno atual: <strong>${saldoAtual} cesta(s)</strong>`
-    : 'Nenhum estoque lançado ainda.';
+    : 'Nenhum estoque lançado ainda para esta paróquia.';
   document.getElementById('estoque-saldo-atual-modal').innerHTML = txt;
   document.getElementById('estoque-qtd').value = '';
   document.getElementById('estoque-obs').value = '';
   if(document.getElementById('estoque-doador')) document.getElementById('estoque-doador').value = '';
-  atualizarSelectCapela(usuarioAtual.paroquia, 'estoque-capela', '', true, '— Toda a paróquia —');
+  atualizarSelectCapela(par, 'estoque-capela', '', true, '— Toda a paróquia —');
   abrirModal('modal-estoque');
 }
 
@@ -2211,7 +2213,8 @@ function confirmarLancamentoEstoque() {
 
 // ── Definir compartilhável ────────────────────────────
 function abrirModalCompartilhar() {
-  const par = usuarioAtual.paroquia;
+  const par = getParoquiaEstoque();
+  if (!par) { toast('Selecione uma paróquia primeiro.', 'erro'); return; }
   const saldo = getSaldoParoquia(par);
   const comp = getCompartilhavel(par);
   let info = '';
@@ -3540,6 +3543,37 @@ function formatarTelefone(input) {
     v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
   }
   input.value = v;
+}
+
+
+function debugRenderEstoque() {
+  var tbody = document.getElementById('tabela-estoque-paroquias');
+  var info = 'tbody=' + (tbody ? 'OK' : 'NULL') +
+    ' | LISTA=' + LISTA_PAROQUIAS.length +
+    ' | estoques=' + Object.keys(estoques).length +
+    ' | admin=' + (usuarioAtual.paroquia === '__admin__');
+  
+  if (!tbody) {
+    alert('PROBLEMA: tbody não encontrado!\n' + info);
+    return;
+  }
+  
+  // Preencher diretamente sem chamar renderEstoque
+  var isAdmin = usuarioAtual.paroquia === '__admin__';
+  var lista = isAdmin ? LISTA_PAROQUIAS : Object.keys(estoques);
+  
+  if (!lista.length) {
+    alert('Lista vazia!\n' + info);
+    return;
+  }
+  
+  tbody.innerHTML = lista.map(function(p) {
+    var e = estoques[p];
+    var comp = e && e.compartilhavel != null ? e.compartilhavel : null;
+    return '<tr><td>' + p + '</td><td>' + (comp !== null ? comp : '—') + '</td><td>—</td><td>—</td><td>—</td></tr>';
+  }).join('');
+  
+  alert('OK! ' + lista.length + ' paróquias renderizadas.\n' + info);
 }
 
 </script>
