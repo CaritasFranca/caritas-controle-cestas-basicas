@@ -585,7 +585,10 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
         </div>
         <div class="painel-secao">
-          <div class="painel-secao-titulo">Cestas disponíveis para compartilhamento</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
+            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
+          </div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
               <thead><tr><th>Paróquia</th><th>Cestas para compartilhar</th><th>Disponível</th><th>Contato</th><th>Ação</th></tr></thead>
