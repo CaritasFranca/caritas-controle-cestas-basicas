@@ -572,7 +572,10 @@
       <!-- PAINEL CESTAS -->
       <div id="estoque-painel-cestas">
         <div class="secao-header" style="margin-bottom:14px;">
-          <span></span>
+          <div id="estoque-sel-paroquia-admin" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;width:100%;margin-bottom:10px;">
+            <label style="font-size:0.85rem;font-weight:600;">Paróquia:</label>
+            <select id="estoque-paroquia-admin-sel" style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;"></select>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;" id="estoque-botoes">
             <button class="btn btn-secundario" id="btn-lancar-estoque" onclick="abrirModalEstoque()">+ Lançar Recebimento</button>
             <button class="btn btn-primario" id="btn-compartilhar-estoque" onclick="abrirModalCompartilhar()">🤝 Definir disponível p/ compartilhar</button>
@@ -2299,19 +2302,18 @@ function renderEstoque() {
   // Para admin: mostrar seletor de paróquia antes dos botões
   var selParAdm = document.getElementById('estoque-sel-paroquia-admin');
   if (isAdmin) {
-    if (!selParAdm) {
-      var div = document.createElement('div');
-      div.id = 'estoque-sel-paroquia-admin';
-      div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;';
-      div.innerHTML = '<label style="font-size:0.85rem;font-weight:600;">Paróquia:</label>' +
-        '<select id="estoque-paroquia-admin-sel" style="flex:1;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;">' +
-        LISTA_PAROQUIAS.map(function(p){ return '<option value="' + p + '">' + p + '</option>'; }).join('') +
-        '</select>';
-      div.querySelector('select').onchange = function() { renderEstoque(); };
-      divBotoes.parentNode.insertBefore(div, divBotoes);
+    var divSelAdmin = document.getElementById('estoque-sel-paroquia-admin');
+    var selAdmin = document.getElementById('estoque-paroquia-admin-sel');
+    if (divSelAdmin) divSelAdmin.style.display = 'flex';
+    if (selAdmin && selAdmin.options.length === 0) {
+      selAdmin.innerHTML = LISTA_PAROQUIAS.map(function(p){
+        return '<option value="' + p + '">' + p + '</option>';
+      }).join('');
+      selAdmin.onchange = function() { renderEstoque(); };
     }
   } else {
-    if (selParAdm) selParAdm.remove();
+    var divSelAdmin = document.getElementById('estoque-sel-paroquia-admin');
+    if (divSelAdmin) divSelAdmin.style.display = 'none';
   }
 
   // Resumo interno (só da própria paróquia)
