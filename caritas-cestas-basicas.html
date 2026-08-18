@@ -587,7 +587,7 @@
         <div class="painel-secao">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="painel-secao-titulo" style="margin-bottom:0;">Cestas disponíveis para compartilhamento</div>
-            <button class="btn btn-secundario btn-sm" onclick="renderEstoque()">🔄 Atualizar tabela</button>
+            <button class="btn btn-secundario btn-sm" onclick="atualizarTabelaEstoque()">🔄 Atualizar tabela</button>
           </div>
           <div class="tabela-wrap" id="estoque-tabela-wrap">
             <table>
@@ -3575,6 +3575,24 @@ function formatarTelefone(input) {
   document.addEventListener('DOMContentLoaded', iniciarObserverEstoque);
   setTimeout(iniciarObserverEstoque, 1000);
 })();
+
+
+function atualizarTabelaEstoque() {
+  if (!usandoFirebase || !db) {
+    renderEstoque();
+    return;
+  }
+  // Buscar dados frescos do Firebase e renderizar
+  db.collection('estoques').get().then(function(snap) {
+    estoques = {};
+    snap.forEach(function(d) { estoques[d.id] = d.data(); });
+    renderEstoque();
+    toast('Tabela atualizada! (' + Object.keys(estoques).length + ' registros)', 'ok');
+  }).catch(function(e) {
+    renderEstoque();
+    toast('Erro ao buscar dados: ' + e.message, 'erro');
+  });
+}
 
 </script>
 
