@@ -2176,6 +2176,14 @@ function getCompartilhavel(paroquia) {
 }
 
 // ── Lançar recebimento ────────────────────────────────
+function getParoquiaEstoque() {
+  if (usuarioAtual.paroquia === '__admin__') {
+    var sel = document.getElementById('estoque-paroquia-admin-sel');
+    return sel ? sel.value : '';
+  }
+  return usuarioAtual.paroquia;
+}
+
 function abrirModalEstoque() {
   const par = getParoquiaEstoque();
   if (!par) { toast('Selecione uma paróquia primeiro.', 'erro'); return; }
@@ -2243,6 +2251,7 @@ function confirmarCompartilhamento() {
     toast(`Não pode ultrapassar o saldo interno (${saldo}).`, 'erro'); return;
   }
   const obs = document.getElementById('compartilhar-obs').value.trim();
+  const tel = document.getElementById('compartilhar-tel') ? document.getElementById('compartilhar-tel').value.trim() : '';
   const dados = {
     ...(estoques[par] || {}),
     compartilhavel: qtd,
@@ -2374,8 +2383,8 @@ function renderEstoque() {
         : '<span class="badge" style="background:#FADBD8;color:#922B21;">🚫 Não</span>';
     // Botão solicitar: só para paróquias diferentes da própria
     const isAdminView = minhaPar === '__admin__';
-    const podeSolicitar = p !== minhaPar && comp > 0 && !solPendente;
     const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
+    const podeSolicitar = p !== minhaPar && comp > 0 && !solPendente;
     let btnSolicitar = '';
     if (p === minhaPar) {
       // Ver solicitações recebidas
