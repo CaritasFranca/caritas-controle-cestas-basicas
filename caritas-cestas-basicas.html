@@ -1101,6 +1101,7 @@ function mostrarErroLogin(msg) {
 
 function iniciarSessao(u) {
   usuarioAtual = u;
+  localStorage.setItem('df_sessao', JSON.stringify(u));
   document.getElementById('tela-login').style.display = 'none';
   document.getElementById('tela-app').style.display = 'flex';
   mostrarBtnInstalar();
@@ -1126,6 +1127,7 @@ function iniciarSessao(u) {
 function sair() {
   if (chatListener) { chatListener(); chatListener = null; }
   usuarioAtual = null;
+  localStorage.removeItem('df_sessao');
   familias = []; entregas = []; agentes = [];
   document.getElementById('tela-app').style.display = 'none';
   document.getElementById('tela-login').style.display = 'flex';
@@ -2138,6 +2140,14 @@ window.addEventListener('load', ()=>{
   document.getElementById('firebase-json').value = JSON.stringify(configPadrao, null, 2);
   document.getElementById('status-firebase').textContent = 'Clique em "Conectar ao Firebase" para sincronizar os dados.';
   carregarFirebaseSDK(configPadrao);
+
+  // Restaurar sessão salva (login persiste entre recarregamentos/Atualizar)
+  try {
+    const sessaoSalva = JSON.parse(localStorage.getItem('df_sessao') || 'null');
+    if (sessaoSalva && sessaoSalva.paroquia) {
+      iniciarSessao(sessaoSalva);
+    }
+  } catch (e) { localStorage.removeItem('df_sessao'); }
 
   // Pré-selecionar paróquia via parâmetro de URL (?paroquia=Nome)
   const params = new URLSearchParams(window.location.search);
