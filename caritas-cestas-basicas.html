@@ -3335,12 +3335,14 @@ function carregarItens() {
   if (itensListener) { renderItens(itensDiversos); return; }
   itensListener = db.collection('itens_diversos')
     .where('ativo', '==', true)
-    .orderBy('criadoEm', 'desc')
     .onSnapshot(snap => {
       itensDiversos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      itensDiversos.sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
       renderItens(itensDiversos);
     }, err => {
       toast('Erro ao carregar itens: ' + err.message, 'erro');
+      document.getElementById('itens-lista').innerHTML =
+        '<div class="vazio"><div class="vazio-icone">⚠️</div><p>Erro ao carregar itens: ' + esc(err.message) + '</p></div>';
       itensListener = null;
     });
 }
