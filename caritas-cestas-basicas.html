@@ -3278,8 +3278,10 @@ function abrirModalInstalar() {
 function mudarTabInstalar(aba) {
   document.getElementById('instalar-ios').style.display = aba === 'ios' ? '' : 'none';
   document.getElementById('instalar-android').style.display = aba === 'android' ? '' : 'none';
+  document.getElementById('instalar-pc').style.display = aba === 'pc' ? '' : 'none';
   document.getElementById('tab-ios').className = 'instalar-tab' + (aba === 'ios' ? ' ativa' : '');
   document.getElementById('tab-android').className = 'instalar-tab' + (aba === 'android' ? ' ativa' : '');
+  document.getElementById('tab-pc').className = 'instalar-tab' + (aba === 'pc' ? ' ativa' : '');
 }
 
 // Mostrar botão flutuante apenas quando estiver logado
@@ -3457,6 +3459,8 @@ function abrirModalNovoItem() {
 
 function confirmarNovoItem() {
   const categoria = document.getElementById('item-categoria').value;
+  const categoriaTexto = document.getElementById('item-categoria').selectedOptions[0]
+    ? document.getElementById('item-categoria').selectedOptions[0].textContent.trim() : categoria;
   const descricao = document.getElementById('item-descricao').value.trim();
   const qtd = parseInt(document.getElementById('item-qtd').value);
   const unidade = document.getElementById('item-unidade').value;
@@ -3481,6 +3485,22 @@ function confirmarNovoItem() {
     criadoEm: new Date().toISOString()
   };
 
+  const parNomeConfirm = parItem.replace('Paróquia ','').replace('Santuário Diocesano ','').replace('Sé Catedral ','').split('(')[0].trim();
+  document.getElementById('modal-confirmar-titulo').textContent = '🎁 Confirmar Registro';
+  document.getElementById('modal-confirmar-msg').innerHTML =
+    `Você está prestes a registrar:<br><br>
+    <strong>${esc(qtd)} ${esc(unidade)}</strong> de <strong>${esc(descricao)}</strong> (${esc(categoriaTexto)})<br>
+    pela paróquia <strong>${esc(parNomeConfirm)}</strong>.<br><br>
+    <span style="font-size:0.82rem;color:var(--cinza-texto);">Confira se a paróquia está certa antes de confirmar.</span>`;
+  document.getElementById('modal-confirmar-btn').textContent = 'Sim, registrar';
+  document.getElementById('modal-confirmar-btn').className = 'btn btn-primario';
+  document.getElementById('modal-confirmar-btn').style.display = '';
+  document.getElementById('modal-confirmar-btn').onclick = () => salvarNovoItemConfirmado(item);
+  abrirModal('modal-confirmar');
+}
+
+function salvarNovoItemConfirmado(item) {
+  fecharModal('modal-confirmar');
   if (usandoFirebase && db) {
     db.collection('itens_diversos').add(item)
       .then(() => { fecharModal('modal-novo-item'); toast('Item registrado! ✅', 'ok'); })
@@ -3945,13 +3965,14 @@ function atualizarTabelaEstoque() {
     </div>
     <div class="modal-body">
       <p style="font-size:0.88rem;color:var(--cinza-texto);margin-bottom:14px;">
-        Crie um atalho na tela inicial do seu celular para acessar o sistema como um app, sem precisar abrir o navegador.
+        Crie um atalho no seu celular ou computador para acessar o sistema como um app, sem precisar abrir o navegador toda vez.
       </p>
 
-      <!-- Abas iOS / Android -->
+      <!-- Abas iOS / Android / PC -->
       <div class="instalar-tabs">
         <button class="instalar-tab" id="tab-ios" onclick="mudarTabInstalar('ios')">🍎 iPhone (iOS)</button>
         <button class="instalar-tab" id="tab-android" onclick="mudarTabInstalar('android')">🤖 Samsung / Android</button>
+        <button class="instalar-tab" id="tab-pc" onclick="mudarTabInstalar('pc')">💻 Computador</button>
       </div>
 
       <!-- iOS -->
@@ -3972,6 +3993,16 @@ function atualizarTabelaEstoque() {
         <div class="instalar-passo"><div class="instalar-num">4</div><div class="instalar-texto">Confirme o nome e toque em <strong>"Adicionar"</strong></div></div>
         <div class="instalar-passo"><div class="instalar-num">5</div><div class="instalar-texto">O ícone da <strong>Cáritas</strong> aparecerá na tela inicial ✅</div></div>
         <div class="instalar-dica">💡 No Samsung Internet: toque nas <strong>três linhas ≡</strong> → "Adicionar página a" → "Tela inicial".</div>
+      </div>
+
+      <!-- PC / Computador -->
+      <div id="instalar-pc" style="display:none;">
+        <p style="font-size:0.85rem;color:var(--cinza-texto);margin-bottom:10px;">Funciona no <strong>Chrome</strong> ou <strong>Edge</strong> (não funciona no Safari de Mac):</p>
+        <div class="instalar-passo"><div class="instalar-num">1</div><div class="instalar-texto">Abra o link do sistema no <strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">2</div><div class="instalar-texto">Olhe na <strong>barra de endereço</strong>, do lado direito — vai ter um ícone de <strong>tela com uma seta ⊕</strong> (instalar)</div></div>
+        <div class="instalar-passo"><div class="instalar-num">3</div><div class="instalar-texto">Clique nesse ícone e depois em <strong>"Instalar"</strong></div></div>
+        <div class="instalar-passo"><div class="instalar-num">4</div><div class="instalar-texto">O sistema abre numa janela própria e um atalho é criado na <strong>área de trabalho</strong> e no menu iniciar</div></div>
+        <div class="instalar-dica">💡 Se não aparecer o ícone na barra de endereço: clique nos <strong>três pontinhos ⋮</strong> (Chrome) ou <strong>três pontos ...</strong> (Edge) no canto superior direito → procure por <strong>"Instalar Cáritas..."</strong> ou <strong>"Aplicativos" → "Instalar este site como um aplicativo"</strong>.</div>
       </div>
     </div>
     <div class="modal-footer">
