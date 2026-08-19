@@ -2386,8 +2386,8 @@ function renderEstoque() {
     const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
     const podeSolicitar = p !== minhaPar && comp > 0 && !solPendente;
     let btnSolicitar = '';
-    if (p === minhaPar) {
-      // Ver solicitações recebidas
+    if (p === minhaPar || isAdminView) {
+      // Ver solicitações recebidas (dono da paróquia, ou Admin vendo qualquer paróquia)
       const pendentes = e && e.solicitacoes ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
       if (pendentes.length) {
         btnSolicitar = `<button class="btn btn-primario btn-sm" onclick="verSolicitacoesCestas('${esc(p)}')">📩 ${pendentes.length} solicitação(ões)</button>`;
@@ -2420,11 +2420,12 @@ function renderEstoque() {
     const disp = comp === null ? 'Não informado' : comp > 0 ? '✅ Disponível' : '🚫 Sem cestas';
     const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || null) : null;
     const dataStr = data && data !== 'undefined' ? data.substring(0,10) : null;
+    const isAdminViewMobile = minhaPar === '__admin__';
     const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__';
     const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
-    const pendentes = (p === minhaPar && e && e.solicitacoes) ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
+    const pendentes = ((p === minhaPar || isAdminViewMobile) && e && e.solicitacoes) ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
     let btnMobile = '';
-    if (p === minhaPar && pendentes.length) {
+    if ((p === minhaPar || isAdminViewMobile) && pendentes.length) {
       btnMobile = `<button class="btn btn-primario btn-sm" onclick="verSolicitacoesCestas('${esc(p)}')">📩 ${pendentes.length} solicitação(ões)</button>`;
     } else if (solPendente) {
       btnMobile = '<span style="font-size:0.75rem;color:#E67E22;">📩 Solicitado</span>';
