@@ -581,6 +581,17 @@
             <button class="btn btn-primario" id="btn-compartilhar-estoque" onclick="abrirModalCompartilhar()">🤝 Definir disponível p/ compartilhar</button>
           </div>
         </div>
+        <div id="estoque-visao-geral" class="painel-secao" style="display:none;">
+          <div class="painel-secao-titulo">📊 Visão Geral — Cestas Básicas (todas as paróquias)</div>
+          <div class="tabela-wrap">
+            <table>
+              <thead><tr><th>Paróquia</th><th>Entradas (recebidas)</th><th>Saídas (entregues a famílias)</th><th>Cedidas p/ outras paróquias</th><th>Recebidas de outras paróquias</th><th>Saldo interno atual</th></tr></thead>
+              <tbody id="tabela-visao-geral-cestas"></tbody>
+            </table>
+          </div>
+          <div id="visao-geral-cestas-cards-mobile"></div>
+          <div style="font-size:0.75rem;color:var(--cinza-texto);margin-top:8px;">* Entradas contam só a partir da implantação deste painel — lançamentos anteriores não ficaram registrados nesse total acumulado.</div>
+        </div>
         <div id="estoque-resumo-proprio" style="display:none;margin-bottom:20px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="estoque-cards-proprio"></div>
         </div>
@@ -612,8 +623,22 @@
       <!-- PAINEL ITENS DIVERSOS -->
       <div id="estoque-painel-itens" style="display:none;">
         <div class="secao-header" style="margin-bottom:14px;">
+          <div id="itens-sel-paroquia-admin" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;width:100%;margin-bottom:10px;">
+            <label style="font-size:0.85rem;font-weight:600;">Paróquia:</label>
+            <select id="itens-paroquia-admin-sel" style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.85rem;"></select>
+          </div>
           <span style="font-size:0.88rem;color:var(--cinza-texto);">Alimentos, roupas, medicamentos, equipamentos e outros itens</span>
           <button class="btn btn-primario" id="btn-novo-item" onclick="abrirModalNovoItem()">+ Registrar Item</button>
+        </div>
+        <div id="itens-visao-geral" class="painel-secao" style="display:none;">
+          <div class="painel-secao-titulo">📊 Visão Geral — Itens Diversos (todas as paróquias)</div>
+          <div class="tabela-wrap">
+            <table>
+              <thead><tr><th>Paróquia</th><th>Itens registrados (entradas)</th><th>Cedidos p/ outras paróquias</th><th>Recebidos de outras paróquias</th></tr></thead>
+              <tbody id="tabela-visao-geral-itens"></tbody>
+            </table>
+          </div>
+          <div id="visao-geral-itens-cards-mobile"></div>
         </div>
         <div id="itens-lista">
           <div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.</p></div>
@@ -2229,9 +2254,11 @@ function confirmarLancamentoEstoque() {
   if (!par) { toast('Selecione uma paróquia.', 'erro'); return; }
   const saldoAnterior = getSaldoParoquia(par) || 0;
   const novoSaldo = saldoAnterior + qtd;
+  const totalEntradasAnterior = (estoques[par] && estoques[par].totalEntradas) || 0;
   const dados = {
     ...(estoques[par] || {}),
     saldo: novoSaldo,
+    totalEntradas: totalEntradasAnterior + qtd,
     ultimaAtualizacao: new Date().toISOString().slice(0,10),
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     obs,
@@ -2345,16 +2372,18 @@ function renderEstoque() {
     if (divSelAdmin) divSelAdmin.style.display = 'none';
   }
 
-  // Resumo interno (só da própria paróquia)
+  // Resumo interno (da paróquia própria, ou da paróquia selecionada pelo Admin)
   const divResumo = document.getElementById('estoque-resumo-proprio');
   const divCards = document.getElementById('estoque-cards-proprio');
-  if (!isAdmin) {
-    const saldo = getSaldoParoquia(par);
-    const comp = getCompartilhavel(par);
-    divCards.innerHTML = `
+  const parResumo = isAdmin ? getParoquiaEstoque() : par;
+  if (!isAdmin || parResumo) {
+    const saldo = getSaldoParoquia(parResumo);
+    const comp = getCompartilhavel(parResumo);
+    const tituloResumo = isAdmin ? `<div style="font-size:0.8rem;color:var(--cinza-texto);margin-bottom:6px;">Estoque de: <strong>${esc(parResumo)}</strong></div>` : '';
+    divCards.innerHTML = tituloResumo + `
       <div class="card-resumo" style="border-left-color:var(--azul);">
         <div class="numero" style="color:var(--azul);font-size:1.6rem;">${saldo !== null ? saldo : '—'}</div>
-        <div class="label">Seu estoque interno</div>
+        <div class="label">Estoque interno</div>
       </div>
       <div class="card-resumo" style="border-left-color:${comp > 0 ? 'var(--verde)' : comp === 0 ? '#C0392B' : 'var(--cinza-medio)'};">
         <div class="numero" style="color:${comp > 0 ? 'var(--verde)' : comp === 0 ? '#C0392B' : 'var(--cinza-texto)'};font-size:1.6rem;">${comp !== null ? comp : '—'}</div>
@@ -2490,6 +2519,63 @@ function renderEstoque() {
   }
 
   renderHistoricoCompartilhamento();
+  renderVisaoGeralCestas();
+}
+
+// ── Visão Geral (Admin) — Cestas Básicas ───────────────
+function renderVisaoGeralCestas() {
+  const painel = document.getElementById('estoque-visao-geral');
+  if (!painel) return;
+  const isAdmin = usuarioAtual.paroquia === '__admin__';
+  painel.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) return;
+
+  const tbody = document.getElementById('tabela-visao-geral-cestas');
+  const cardsMobile = document.getElementById('visao-geral-cestas-cards-mobile');
+  const isMobile = window.innerWidth <= 640;
+
+  const linhas = LISTA_PAROQUIAS.slice().sort().map(p => {
+    const e = estoques[p] || {};
+    const entradas = e.totalEntradas || 0;
+    const saidasFamilias = entregas.filter(x => x.paroquia === p).length;
+    let cedidas = 0, recebidas = 0;
+    Object.keys(estoques).forEach(pOf => {
+      const eOf = estoques[pOf];
+      if (!eOf || !eOf.solicitacoes) return;
+      eOf.solicitacoes.forEach(s => {
+        if (s.status !== 'aprovado') return;
+        if (pOf === p) cedidas += s.qtd;
+        if (s.paroquiaSolicitante === p) recebidas += s.qtd;
+      });
+    });
+    const saldo = e.saldo != null ? e.saldo : null;
+    return { p, entradas, saidasFamilias, cedidas, recebidas, saldo };
+  });
+
+  tbody.innerHTML = linhas.map(l => `<tr>
+    <td style="max-width:180px;word-break:break-word;">${esc(l.p)}</td>
+    <td>${l.entradas}</td>
+    <td>${l.saidasFamilias}</td>
+    <td>${l.cedidas}</td>
+    <td>${l.recebidas}</td>
+    <td><strong>${l.saldo !== null ? l.saldo : '—'}</strong></td>
+  </tr>`).join('');
+
+  if (cardsMobile) {
+    cardsMobile.innerHTML = linhas.map(l => `<div class="familia-card" style="display:block;">
+      <div class="familia-card-nome" style="font-size:0.85rem;">${esc(l.p)}</div>
+      <div class="familia-card-info">
+        <span>📥 Entradas: ${l.entradas}</span>
+        <span>👪 Entregues: ${l.saidasFamilias}</span>
+        <span>🤝 Cedidas: ${l.cedidas}</span>
+        <span>📩 Recebidas: ${l.recebidas}</span>
+        <span>📦 Saldo: ${l.saldo !== null ? l.saldo : '—'}</span>
+      </div>
+    </div>`).join('');
+    cardsMobile.style.display = isMobile ? 'block' : 'none';
+  }
+  const wrap = painel.querySelector('.tabela-wrap');
+  if (wrap) wrap.style.display = isMobile ? 'none' : '';
 }
 
 // ── Histórico de solicitações aprovadas/recusadas ──────
@@ -3211,12 +3297,32 @@ let itensDiversos = [];
 let itensListener = null;
 let itemSolicitandoId = null;
 
+function getParoquiaItens() {
+  if (usuarioAtual.paroquia === '__admin__') {
+    var sel = document.getElementById('itens-paroquia-admin-sel');
+    return sel ? sel.value : '';
+  }
+  return usuarioAtual.paroquia;
+}
+
 function mudarAbaEstoque(aba) {
   document.getElementById('estoque-painel-cestas').style.display = aba === 'cestas' ? '' : 'none';
   document.getElementById('estoque-painel-itens').style.display = aba === 'itens' ? '' : 'none';
   document.getElementById('estoque-aba-cestas').className = 'estoque-aba' + (aba === 'cestas' ? ' ativa' : '');
   document.getElementById('estoque-aba-itens').className = 'estoque-aba' + (aba === 'itens' ? ' ativa' : '');
   if (aba === 'itens') {
+    var divSelItens = document.getElementById('itens-sel-paroquia-admin');
+    var selItens = document.getElementById('itens-paroquia-admin-sel');
+    if (usuarioAtual.paroquia === '__admin__') {
+      if (divSelItens) divSelItens.style.display = 'flex';
+      if (selItens && selItens.options.length === 0) {
+        selItens.innerHTML = LISTA_PAROQUIAS.map(function(p){
+          return '<option value="' + p + '">' + p + '</option>';
+        }).join('');
+      }
+    } else if (divSelItens) {
+      divSelItens.style.display = 'none';
+    }
     carregarItens();
   } else {
     setTimeout(renderEstoque, 100);
@@ -3226,19 +3332,73 @@ function mudarAbaEstoque(aba) {
 
 function carregarItens() {
   if (!usandoFirebase || !db) { renderItens([]); return; }
-  if (itensListener) return;
+  if (itensListener) { renderItens(itensDiversos); return; }
   itensListener = db.collection('itens_diversos')
     .where('ativo', '==', true)
     .orderBy('criadoEm', 'desc')
     .onSnapshot(snap => {
       itensDiversos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderItens(itensDiversos);
+    }, err => {
+      toast('Erro ao carregar itens: ' + err.message, 'erro');
+      itensListener = null;
     });
+}
+
+// ── Visão Geral (Admin) — Itens Diversos ───────────────
+function renderVisaoGeralItens(lista) {
+  const painel = document.getElementById('itens-visao-geral');
+  if (!painel) return;
+  const isAdmin = usuarioAtual.paroquia === '__admin__';
+  painel.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) return;
+
+  const tbody = document.getElementById('tabela-visao-geral-itens');
+  const cardsMobile = document.getElementById('visao-geral-itens-cards-mobile');
+  const isMobile = window.innerWidth <= 640;
+
+  const linhas = LISTA_PAROQUIAS.slice().sort().map(p => {
+    const itensPar = lista.filter(i => i.paroquia === p);
+    const entradas = itensPar.reduce((soma, i) => soma + (i.qtdTotal || 0), 0);
+    let cedidos = 0;
+    itensPar.forEach(i => {
+      (i.solicitacoes || []).forEach(s => { if (s.status === 'aprovado') cedidos += s.qtd; });
+    });
+    let recebidos = 0;
+    lista.forEach(i => {
+      (i.solicitacoes || []).forEach(s => {
+        if (s.status === 'aprovado' && s.paroquiaSolicitante === p) recebidos += s.qtd;
+      });
+    });
+    return { p, entradas, cedidos, recebidos };
+  });
+
+  tbody.innerHTML = linhas.map(l => `<tr>
+    <td style="max-width:180px;word-break:break-word;">${esc(l.p)}</td>
+    <td>${l.entradas}</td>
+    <td>${l.cedidos}</td>
+    <td>${l.recebidos}</td>
+  </tr>`).join('');
+
+  if (cardsMobile) {
+    cardsMobile.innerHTML = linhas.map(l => `<div class="familia-card" style="display:block;">
+      <div class="familia-card-nome" style="font-size:0.85rem;">${esc(l.p)}</div>
+      <div class="familia-card-info">
+        <span>📥 Registrados: ${l.entradas}</span>
+        <span>🤝 Cedidos: ${l.cedidos}</span>
+        <span>📩 Recebidos: ${l.recebidos}</span>
+      </div>
+    </div>`).join('');
+    cardsMobile.style.display = isMobile ? 'block' : 'none';
+  }
+  const wrap = painel.querySelector('.tabela-wrap');
+  if (wrap) wrap.style.display = isMobile ? 'none' : '';
 }
 
 function renderItens(lista) {
   const btnItem = document.getElementById('btn-novo-item');
   if (btnItem) btnItem.style.display = podeRegistrarItem() ? '' : 'none';
+  renderVisaoGeralItens(lista);
   const div = document.getElementById('itens-lista');
   if (!lista.length) {
     div.innerHTML = '<div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.<br>Clique em <strong>+ Registrar Item</strong> para adicionar.</p></div>';
@@ -3305,10 +3465,13 @@ function confirmarNovoItem() {
   if (!descricao) { toast('Descreva o item.', 'erro'); return; }
   if (!qtd || qtd < 1) { toast('Informe a quantidade.', 'erro'); return; }
 
+  const parItem = getParoquiaItens();
+  if (!parItem) { toast('Selecione uma paróquia primeiro.', 'erro'); return; }
+
   const item = {
     categoria, descricao, qtdTotal: qtd, qtdDisponivel: qtd,
     unidade, doador, obs,
-    paroquia: usuarioAtual.paroquia,
+    paroquia: parItem,
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     status: 'disponivel',
     solicitacoes: [],
