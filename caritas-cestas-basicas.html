@@ -597,6 +597,16 @@
           </div>
           <div id="estoque-cards-mobile"></div>
         </div>
+        <div class="painel-secao">
+          <div class="painel-secao-titulo">📜 Histórico de Solicitações (aprovadas e recusadas)</div>
+          <div class="tabela-wrap" id="historico-comp-tabela-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Cedeu</th><th>Recebeu</th><th>Qtd</th><th>Status</th><th>Contatos</th></tr></thead>
+              <tbody id="tabela-historico-compartilhamento"></tbody>
+            </table>
+          </div>
+          <div id="historico-comp-cards-mobile"></div>
+        </div>
       </div>
 
       <!-- PAINEL ITENS DIVERSOS -->
@@ -2383,7 +2393,9 @@ function renderEstoque() {
         : '<span class="badge" style="background:#FADBD8;color:#922B21;">🚫 Não</span>';
     // Botão solicitar: só para paróquias diferentes da própria
     const isAdminView = minhaPar === '__admin__';
-    const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
+    const minhasSolic = e && e.solicitacoes ? e.solicitacoes.filter(s => s.paroquiaSolicitante === minhaPar) : [];
+    const ultimaMinha = minhasSolic.length ? minhasSolic[minhasSolic.length - 1] : null;
+    const solPendente = !!(ultimaMinha && ultimaMinha.status === 'pendente');
     const podeSolicitar = p !== minhaPar && comp > 0 && !solPendente;
     let btnSolicitar = '';
     if (p === minhaPar || isAdminView) {
@@ -2394,6 +2406,11 @@ function renderEstoque() {
       }
     } else if (solPendente) {
       btnSolicitar = '<span style="font-size:0.75rem;color:#E67E22;">📩 Solicitado</span>';
+    } else if (ultimaMinha && ultimaMinha.status === 'aprovado') {
+      const telOf = ultimaMinha.telOfertante ? `<a href="https://wa.me/55${ultimaMinha.telOfertante.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);font-size:0.72rem;">📱 ${esc(ultimaMinha.telOfertante)}</a>` : '';
+      btnSolicitar = `<div><span style="font-size:0.75rem;color:var(--verde);font-weight:600;">✅ Aprovado</span><br>${telOf}</div>`;
+    } else if (ultimaMinha && ultimaMinha.status === 'recusado' && comp > 0) {
+      btnSolicitar = `<div><span style="font-size:0.72rem;color:#C0392B;">✕ Recusado</span><br><button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar de novo</button></div>`;
     } else if (podeSolicitar) {
       btnSolicitar = `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar</button>`;
     }
@@ -2421,14 +2438,21 @@ function renderEstoque() {
     const data = e ? (e.ultimaAtualizacaoComp || e.ultimaAtualizacao || null) : null;
     const dataStr = data && data !== 'undefined' ? data.substring(0,10) : null;
     const isAdminViewMobile = minhaPar === '__admin__';
-    const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__';
-    const solPendente = e && e.solicitacoes && e.solicitacoes.some(s => s.paroquiaSolicitante === minhaPar && s.status === 'pendente');
+    const minhasSolicM = e && e.solicitacoes ? e.solicitacoes.filter(s => s.paroquiaSolicitante === minhaPar) : [];
+    const ultimaMinhaM = minhasSolicM.length ? minhasSolicM[minhasSolicM.length - 1] : null;
+    const solPendente = !!(ultimaMinhaM && ultimaMinhaM.status === 'pendente');
+    const podeSolicitar = p !== minhaPar && comp > 0 && minhaPar !== '__admin__' && !solPendente;
     const pendentes = ((p === minhaPar || isAdminViewMobile) && e && e.solicitacoes) ? e.solicitacoes.filter(s => s.status === 'pendente') : [];
     let btnMobile = '';
     if ((p === minhaPar || isAdminViewMobile) && pendentes.length) {
       btnMobile = `<button class="btn btn-primario btn-sm" onclick="verSolicitacoesCestas('${esc(p)}')">📩 ${pendentes.length} solicitação(ões)</button>`;
     } else if (solPendente) {
       btnMobile = '<span style="font-size:0.75rem;color:#E67E22;">📩 Solicitado</span>';
+    } else if (ultimaMinhaM && ultimaMinhaM.status === 'aprovado') {
+      const telOfM = ultimaMinhaM.telOfertante ? `<a href="https://wa.me/55${ultimaMinhaM.telOfertante.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);font-size:0.72rem;">📱 ${esc(ultimaMinhaM.telOfertante)}</a>` : '';
+      btnMobile = `<span style="font-size:0.75rem;color:var(--verde);font-weight:600;">✅ Aprovado</span> ${telOfM}`;
+    } else if (ultimaMinhaM && ultimaMinhaM.status === 'recusado' && comp > 0) {
+      btnMobile = `<span style="font-size:0.72rem;color:#C0392B;">✕ Recusado</span> <button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar de novo</button>`;
     } else if (podeSolicitar) {
       btnMobile = `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarCestas('${esc(p)}')">📩 Solicitar</button>`;
     }
@@ -2453,6 +2477,86 @@ function renderEstoque() {
       wrap.style.display = '';
       if (cardsMobile) cardsMobile.style.display = 'none';
     }
+  }
+
+  renderHistoricoCompartilhamento();
+}
+
+// ── Histórico de solicitações aprovadas/recusadas ──────
+function renderHistoricoCompartilhamento() {
+  const tbodyH = document.getElementById('tabela-historico-compartilhamento');
+  const cardsH = document.getElementById('historico-comp-cards-mobile');
+  if (!tbodyH) return;
+
+  const minhaPar = usuarioAtual.paroquia;
+  const isAdminH = minhaPar === '__admin__';
+  const isMobileH = window.innerWidth <= 640;
+
+  // Achata todas as solicitações já decididas (aprovado/recusado) de todas as paróquias
+  let historico = [];
+  Object.keys(estoques).forEach(p => {
+    const e = estoques[p];
+    if (!e || !e.solicitacoes) return;
+    e.solicitacoes.forEach(s => {
+      if (s.status !== 'aprovado' && s.status !== 'recusado') return;
+      // Só entra no histórico de quem participou (ofertante ou solicitante), a não ser que seja Admin (vê tudo)
+      if (!isAdminH && p !== minhaPar && s.paroquiaSolicitante !== minhaPar) return;
+      historico.push({ paroquiaOfertante: p, ...s });
+    });
+  });
+  historico.sort((a, b) => new Date(b.aprovadoEm || b.recusadoEm || b.criadoEm) - new Date(a.aprovadoEm || a.recusadoEm || a.criadoEm));
+  historico = historico.slice(0, 30);
+
+  if (!historico.length) {
+    const vazio = '<div class="vazio"><div class="vazio-icone">📜</div><p>Nenhuma solicitação decidida ainda.</p></div>';
+    tbodyH.innerHTML = `<tr><td colspan="6">${vazio}</td></tr>`;
+    if (cardsH) cardsH.innerHTML = vazio;
+    return;
+  }
+
+  const linhaHtml = (h) => {
+    const nomeOf = h.paroquiaOfertante.replace('Paróquia ','').split('(')[0].trim();
+    const nomeSol = h.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim();
+    const data = h.aprovadoEm || h.recusadoEm || h.criadoEm;
+    const statusHtml = h.status === 'aprovado'
+      ? '<span class="badge badge-ativo">✅ Aprovado</span>'
+      : '<span class="badge" style="background:#FADBD8;color:#922B21;">✕ Recusado</span>';
+    const telOfHtml = h.telOfertante ? `<a href="https://wa.me/55${h.telOfertante.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);font-size:0.78rem;display:block;">📱 ${esc(nomeOf)}: ${esc(h.telOfertante)}</a>` : '';
+    const telSolHtml = h.telSolicitante ? `<a href="https://wa.me/55${h.telSolicitante.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);font-size:0.78rem;display:block;">📱 ${esc(nomeSol)}: ${esc(h.telSolicitante)}</a>` : '';
+    return { nomeOf, nomeSol, data, statusHtml, telOfHtml, telSolHtml };
+  };
+
+  tbodyH.innerHTML = historico.map(h => {
+    const l = linhaHtml(h);
+    return `<tr>
+      <td style="font-size:0.82rem;color:var(--cinza-texto);">${formatarData(l.data.substring(0,10))}</td>
+      <td>${esc(l.nomeOf)}</td>
+      <td>${esc(l.nomeSol)}</td>
+      <td><strong>${h.qtd}</strong></td>
+      <td>${l.statusHtml}</td>
+      <td>${l.telOfHtml}${l.telSolHtml}</td>
+    </tr>`;
+  }).join('');
+
+  if (cardsH) {
+    cardsH.innerHTML = historico.map(h => {
+      const l = linhaHtml(h);
+      return `<div class="familia-card" style="display:block;">
+        <div class="familia-card-nome" style="font-size:0.85rem;">${esc(l.nomeOf)} → ${esc(l.nomeSol)}</div>
+        <div class="familia-card-info">
+          <span>${h.qtd} cesta(s)</span>
+          <span>${l.statusHtml}</span>
+          <span>📅 ${formatarData(l.data.substring(0,10))}</span>
+        </div>
+        <div style="margin-top:6px;">${l.telOfHtml}${l.telSolHtml}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const wrapH = document.getElementById('historico-comp-tabela-wrap');
+  if (wrapH) {
+    if (isMobileH) { wrapH.style.display = 'none'; if (cardsH) cardsH.style.display = 'block'; }
+    else { wrapH.style.display = ''; if (cardsH) cardsH.style.display = 'none'; }
   }
 }
 
@@ -3246,7 +3350,7 @@ function confirmarSolicitarItem() {
   if (qtd > item.qtdDisponivel) { toast(`Quantidade maior que o disponível (${item.qtdDisponivel}).`, 'erro'); return; }
 
   // Determinar paróquia solicitante (admin pode escolher)
-  const selParSolic = document.getElementById('solicitar-cestas-paroquia');
+  const selParSolic = document.getElementById('solicitar-item-paroquia');
   const parSolicitante = (usuarioAtual.paroquia === '__admin__' && selParSolic)
     ? selParSolic.value
     : usuarioAtual.paroquia;
@@ -3442,6 +3546,7 @@ function abrirModalSolicitarCestas(paroquia) {
 
   document.getElementById('solicitar-cestas-qtd').value = '';
   document.getElementById('solicitar-cestas-motivo').value = '';
+  document.getElementById('solicitar-cestas-tel').value = '';
   abrirModal('modal-solicitar-cestas');
 }
 
@@ -3458,7 +3563,10 @@ function confirmarSolicitarCestas() {
     toast('Quantidade maior que o disponível (' + e.compartilhavel + ' cestas).', 'erro'); return;
   }
 
-  const selParItem = document.getElementById('solicitar-item-paroquia');
+  const telSolicitante = document.getElementById('solicitar-cestas-tel').value.trim();
+  if (!telSolicitante) { toast('Informe seu telefone de contato.', 'erro'); return; }
+
+  const selParItem = document.getElementById('solicitar-cestas-paroquia');
   const parSolicitanteItem = (usuarioAtual.paroquia === '__admin__' && selParItem)
     ? selParItem.value : usuarioAtual.paroquia;
   if (!parSolicitanteItem) { toast('Selecione a paróquia solicitante.', 'erro'); return; }
@@ -3467,6 +3575,8 @@ function confirmarSolicitarCestas() {
     paroquiaSolicitante: parSolicitanteItem,
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
     qtd, motivo,
+    telSolicitante,
+    telOfertante: e.telComp || '',
     status: 'pendente',
     criadoEm: new Date().toISOString()
   };
@@ -3479,9 +3589,9 @@ function confirmarSolicitarCestas() {
       toast('Solicitação enviada! A paróquia será notificada no chat. ✅', 'ok');
       // Notificar no chat
       const parNome = cestaSolicitandoPar.replace('Paróquia ','').split('(')[0].trim();
-      const solNome = parSolicitante.replace('Paróquia ','').split('(')[0].trim();
+      const solNome = parSolicitanteItem.replace('Paróquia ','').split('(')[0].trim();
       db.collection('chat').add({
-        texto: '📩 Solicitação de cestas: ' + solNome + ' solicita ' + qtd + ' cesta(s) de ' + parNome + '. Motivo: ' + motivo,
+        texto: '📩 Solicitação de cestas: ' + solNome + ' solicita ' + qtd + ' cesta(s) de ' + parNome + '. Motivo: ' + motivo + '. Contato: ' + telSolicitante,
         usuario: 'Sistema',
         paroquia: 'Diocese',
         ts: new Date().toISOString(),
@@ -3499,9 +3609,13 @@ function verSolicitacoesCestas(paroquia) {
 
   const lista = pendentes.map((s, idx) => {
     const solNome = s.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim();
+    const telHtml = s.telSolicitante
+      ? `<a href="https://wa.me/55${s.telSolicitante.replace(/\D/g,'')}" target="_blank" style="color:var(--verde);">📱 ${esc(s.telSolicitante)}</a>`
+      : '<span style="color:var(--cinza-texto);">Sem telefone informado</span>';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--cinza-claro);">
       <strong>${esc(solNome)}</strong> solicita <strong>${s.qtd} cesta(s)</strong><br>
       <span style="font-size:0.82rem;color:var(--cinza-texto);">Motivo: ${esc(s.motivo)}</span><br>
+      <span style="font-size:0.82rem;">${telHtml}</span>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn btn-verde btn-sm" onclick="aprovarSolicitacaoCestas('${esc(paroquia)}',${idx})">✅ Aprovar</button>
         <button class="btn btn-perigo btn-sm" onclick="recusarSolicitacaoCestas('${esc(paroquia)}',${idx})">✕ Recusar</button>
@@ -3519,7 +3633,13 @@ function aprovarSolicitacaoCestas(paroquia, idx) {
   const e = estoques[paroquia];
   if (!e) return;
   const solic = e.solicitacoes[idx];
-  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {...s, status: 'aprovado'} : s);
+  const agora = new Date().toISOString();
+  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {
+    ...s,
+    status: 'aprovado',
+    aprovadoEm: agora,
+    telOfertante: s.telOfertante || e.telComp || ''
+  } : s);
   const novoComp = Math.max(0, (e.compartilhavel || 0) - solic.qtd);
   const novoSaldo = Math.max(0, (e.saldo || 0) - solic.qtd);
 
@@ -3532,8 +3652,10 @@ function aprovarSolicitacaoCestas(paroquia, idx) {
     const solNome = solic.paroquiaSolicitante.replace('Paróquia ','').split('(')[0].trim();
     const parNome = paroquia.replace('Paróquia ','').split('(')[0].trim();
     toast('Aprovado! ' + solic.qtd + ' cesta(s) cedida(s) para ' + solNome + '.', 'ok');
+    const telOf = e.telComp ? (' 📱 ' + parNome + ': ' + e.telComp) : '';
+    const telSol = solic.telSolicitante ? (' | 📱 ' + solNome + ': ' + solic.telSolicitante) : '';
     db.collection('chat').add({
-      texto: '✅ Cestas aprovadas: ' + solic.qtd + ' cesta(s) de ' + parNome + ' cedidas para ' + solNome,
+      texto: '✅ Cestas aprovadas: ' + solic.qtd + ' cesta(s) de ' + parNome + ' cedidas para ' + solNome + '. Contatos:' + telOf + telSol,
       usuario: 'Sistema',
       paroquia: 'Diocese',
       ts: new Date().toISOString(),
@@ -3545,7 +3667,7 @@ function aprovarSolicitacaoCestas(paroquia, idx) {
 function recusarSolicitacaoCestas(paroquia, idx) {
   const e = estoques[paroquia];
   if (!e) return;
-  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {...s, status: 'recusado'} : s);
+  const novasSolic = e.solicitacoes.map((s, i) => i === idx ? {...s, status: 'recusado', recusadoEm: new Date().toISOString()} : s);
   db.collection('estoques').doc(paroquia).update({ solicitacoes: novasSolic })
     .then(() => { fecharModal('modal-confirmar'); toast('Solicitação recusada.', ''); })
     .catch(e => toast('Erro: ' + e.message, 'erro'));
@@ -3784,6 +3906,10 @@ function atualizarTabelaEstoque() {
       <div class="form-grupo">
         <label>Motivo da solicitação *</label>
         <input type="text" id="solicitar-cestas-motivo" placeholder="Ex: Famílias em vulnerabilidade, campanha especial...">
+      </div>
+      <div class="form-grupo">
+        <label>Seu telefone de contato *</label>
+        <input type="tel" id="solicitar-cestas-tel" placeholder="Ex: (16) 99999-9999" oninput="formatarTelefone(this)">
       </div>
     </div>
     <div class="modal-footer">
