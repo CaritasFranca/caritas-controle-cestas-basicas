@@ -409,6 +409,12 @@
     </div>
     <button class="btn-login" onclick="fazerLogin()">Entrar</button>
     <div class="login-erro" id="login-erro"></div>
+    <div style="border-top:1px solid var(--cinza-medio);margin-top:20px;padding-top:14px;text-align:center;">
+      <button type="button" onclick="atualizarApp()"
+        style="background:none;border:none;color:var(--vermelho);font-size:0.82rem;text-decoration:underline;cursor:pointer;padding:4px;font-weight:600;">
+        🔄 Buscar versão mais recente do app
+      </button>
+    </div>
     <div id="whatsapp-compartilhar" style="display:none;margin-top:18px;">
       <a id="whatsapp-link" href="#" target="_blank"
          style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.88rem;font-weight:600;text-decoration:none;">
@@ -674,6 +680,10 @@
     <div class="secao" id="secao-config">
       <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Configurações — Firebase</h2>
       <div class="config-box">
+        <div class="form-grupo" style="margin-bottom:14px;">
+          <label>Está com problema para entrar ou algo não atualizou?</label>
+          <button class="btn btn-verde" style="margin-top:4px;width:fit-content;" onclick="atualizarApp()">🔄 Atualizar Aplicativo Agora</button>
+        </div>
         <div id="status-firebase" class="aviso aviso-info" style="margin-bottom:14px;">Verificando conexão...</div>
         <div class="form-grupo" style="margin-bottom:14px;">
           <label>Cole o JSON de configuração do Firebase</label>
@@ -806,7 +816,11 @@
         <div class="ajuda-secao" id="ajuda-config">
           <h3>⚙️ Config</h3>
           <p class="ajuda-intro">Área técnica de conexão com o banco de dados (Firebase). Normalmente você não vai precisar mexer aqui.</p>
-          <div class="aviso aviso-alerta">⚠️ Só altere algo nesta aba se um responsável técnico do projeto orientar. Mudanças aqui podem afetar todas as paróquias.</div>
+          <ol class="ajuda-passos">
+            <li>Se a senha não funciona logo depois de uma atualização do sistema, ou se algo parece "desatualizado", clique em <strong>🔄 Atualizar Aplicativo Agora</strong> nesta aba.</li>
+            <li>Esse mesmo botão também aparece na tela de login (link "🔄 Buscar versão mais recente do app"), caso você nem consiga logar.</li>
+          </ol>
+          <div class="aviso aviso-alerta">⚠️ Fora isso, só altere algo nesta aba se um responsável técnico do projeto orientar. Mudanças aqui podem afetar todas as paróquias.</div>
         </div>
 
         <div class="ajuda-secao" id="ajuda-faq">
@@ -820,6 +834,10 @@
             <div class="ajuda-faq-resposta">Peça ao responsável da sua paróquia (ou ao Admin Diocese) para cadastrar uma nova senha na aba Usuários.</div>
           </div>
           <div class="ajuda-faq-item">
+            <div class="ajuda-faq-pergunta">Minha senha não funciona depois de uma atualização do sistema</div>
+            <div class="ajuda-faq-resposta">Na tela de login, clique em "🔄 Buscar versão mais recente do app" — isso recarrega o sistema direto do servidor, sem usar nenhuma versão antiga guardada no celular ou computador. Se ainda assim não entrar, confirme com o responsável se a senha realmente está correta.</div>
+          </div>
+          <div class="ajuda-faq-item">
             <div class="ajuda-faq-pergunta">Minha paróquia ficou sem cestas, o que fazer?</div>
             <div class="ajuda-faq-resposta">Vá em Estoque e veja a tabela de "Cestas disponíveis para compartilhamento". Combine com a paróquia pelo Chat.</div>
           </div>
@@ -829,7 +847,7 @@
           </div>
           <div class="ajuda-faq-item">
             <div class="ajuda-faq-pergunta">O sistema parece travado ou não carrega os dados</div>
-            <div class="ajuda-faq-resposta">Verifique sua conexão com a internet e atualize a página (F5). Se o problema continuar, avise o responsável técnico do projeto.</div>
+            <div class="ajuda-faq-resposta">Use o botão "🔄 Atualizar Aplicativo Agora" (na tela de login ou na aba Config). Se o problema continuar, avise o responsável técnico do projeto.</div>
           </div>
           <div class="ajuda-faq-item">
             <div class="ajuda-faq-pergunta">Posso usar o sistema pelo celular?</div>
@@ -1202,6 +1220,12 @@ function aoSelecionarParoquia() {
     const lista = JSON.parse(localStorage.getItem('df_agentes_' + paroquia) || '[]');
     preencherSelect(lista);
   }
+}
+
+function atualizarApp() {
+  toast('Atualizando o aplicativo...', 'ok');
+  const urlLimpa = location.origin + location.pathname + '?v=' + Date.now();
+  setTimeout(() => { location.href = urlLimpa; }, 300);
 }
 
 function fazerLogin() {
