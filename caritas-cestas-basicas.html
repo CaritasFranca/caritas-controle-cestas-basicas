@@ -505,7 +505,10 @@
     <div class="secao" id="secao-agentes">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
         <h2 style="font-size:1.15rem;font-weight:700;" id="titulo-agentes">Usuários da Paróquia</h2>
-        <button class="btn btn-primario" onclick="abrirModalAgente()" id="btn-novo-agente">+ Novo Usuário</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secundario" onclick="abrirModalImportarUsuarios()" id="btn-importar-agentes" style="display:none;">📥 Importar Vários</button>
+          <button class="btn btn-primario" onclick="abrirModalAgente()" id="btn-novo-agente">+ Novo Usuário</button>
+        </div>
       </div>
       <div class="tabela-wrap">
         <table>
@@ -1079,6 +1082,37 @@
     <div class="modal-footer">
       <button class="btn btn-secundario" onclick="fecharModal('modal-agente')">Cancelar</button>
       <button class="btn btn-primario" onclick="salvarAgente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR USUÁRIOS EM LOTE -->
+<div class="modal-overlay" id="modal-importar-usuarios">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📥 Importar Vários Usuários</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-importar-usuarios')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="aviso aviso-info" style="margin-bottom:14px;">
+        Cole uma lista com <strong>um usuário por linha</strong>, no formato:<br>
+        <code>Nome completo; usuário; senha; nível; paróquia</code><br><br>
+        Nível pode ser <code>admin</code>, <code>responsavel</code> ou <code>agente</code>.
+        A paróquia só é necessária para <code>responsavel</code> e <code>agente</code> — para <code>admin</code>, pode deixar em branco.<br><br>
+        Exemplo:<br>
+        <code>Amélio Barbosa; amelio; 232716; admin;</code><br>
+        <code>Maria Silva; maria.silva; 123456; responsavel; Paróquia São José (Franca-SP)</code><br>
+        <code>João Souza; joao.souza; 654321; agente; Paróquia São José (Franca-SP)</code>
+      </div>
+      <div class="form-grupo full">
+        <label>Lista de usuários (uma linha por usuário)</label>
+        <textarea id="importar-texto" rows="8" placeholder="Nome completo; usuário; senha; nível; paróquia" style="font-family:monospace;font-size:0.83rem;padding:10px;border:1.5px solid var(--cinza-medio);border-radius:8px;resize:vertical;width:100%;"></textarea>
+      </div>
+      <div id="importar-resultado" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-importar-usuarios')">Cancelar</button>
+      <button class="btn btn-primario" onclick="importarUsuarios()">📥 Importar</button>
     </div>
   </div>
 </div>
@@ -1950,6 +1984,7 @@ const LISTA_PAROQUIAS = [
 function renderAgentes() {
   const isAdmin = usuarioAtual.nivel === 'admin';
   const tbody = document.getElementById('tabela-agentes');
+  document.getElementById('btn-importar-agentes').style.display = isAdmin ? '' : 'none';
 
   document.getElementById('th-paroquia-agente').style.display = isAdmin ? '' : 'none';
   document.getElementById('titulo-agentes').textContent = isAdmin ? 'Responsáveis e Agentes — Diocese' : 'Agentes da Paróquia';
@@ -2083,6 +2118,82 @@ function removerAgente(id) {
     renderAgentes();
     toast('Usuário removido.','ok');
   }
+}
+
+// ---------- IMPORTAÇÃO DE USUÁRIOS EM LOTE ----------
+function abrirModalImportarUsuarios() {
+  document.getElementById('importar-texto').value = '';
+  document.getElementById('importar-resultado').innerHTML = '';
+  abrirModal('modal-importar-usuarios');
+}
+
+function importarUsuarios() {
+  const texto = document.getElementById('importar-texto').value.trim();
+  const resultadoEl = document.getElementById('importar-resultado');
+  if (!texto) { toast('Cole a lista de usuários primeiro.', 'erro'); return; }
+
+  const linhas = texto.split('\n').map(l => l.trim()).filter(l => l);
+  const validos = [];
+  const erros = [];
+
+  linhas.forEach((linha, i) => {
+    const partes = linha.split(';').map(p => p.trim());
+    const [nome, usuario, senha, nivelBruto, paroquiaBruta] = partes;
+    const nivel = (nivelBruto || '').toLowerCase();
+
+    if (!nome || !usuario || !senha || !nivel) {
+      erros.push(`Linha ${i+1}: faltam campos obrigatórios (nome, usuário, senha ou nível).`);
+      return;
+    }
+    if (!['admin','responsavel','agente'].includes(nivel)) {
+      erros.push(`Linha ${i+1}: nível "${nivelBruto}" inválido (use admin, responsavel ou agente).`);
+      return;
+    }
+    let paroquia = '__admin__';
+    if (nivel !== 'admin') {
+      const paroquiaEncontrada = LISTA_PAROQUIAS.find(p => p.toLowerCase() === (paroquiaBruta||'').toLowerCase());
+      if (!paroquiaEncontrada) {
+        erros.push(`Linha ${i+1}: paróquia "${paroquiaBruta||''}" não encontrada na lista de paróquias.`);
+        return;
+      }
+      paroquia = paroquiaEncontrada;
+    }
+    const duplo = agentes.find(a => a.usuario === usuario) || validos.find(v => v.usuario === usuario);
+    if (duplo) {
+      erros.push(`Linha ${i+1}: usuário "${usuario}" já existe (ou está repetido na lista).`);
+      return;
+    }
+    validos.push({ nome, usuario, senha, nivel, paroquia, capela: '' });
+  });
+
+  if (!validos.length) {
+    resultadoEl.innerHTML = `<div class="aviso aviso-alerta">Nenhum usuário válido para importar.<br>${erros.map(e=>esc(e)).join('<br>')}</div>`;
+    return;
+  }
+
+  const salvarUm = (u) => {
+    if (usandoFirebase && db) {
+      return db.collection('agentes').add(u);
+    }
+    u.id = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    agentes.push(u);
+    const chave = 'df_agentes_' + u.paroquia;
+    const existentes = JSON.parse(localStorage.getItem(chave)||'[]');
+    existentes.push(u);
+    localStorage.setItem(chave, JSON.stringify(existentes));
+    return Promise.resolve();
+  };
+
+  Promise.allSettled(validos.map(salvarUm)).then(resultados => {
+    const sucesso = resultados.filter(r => r.status === 'fulfilled').length;
+    const falhas = resultados.length - sucesso;
+    let msg = `<div class="aviso aviso-ok">✅ ${sucesso} usuário(s) importado(s) com sucesso.</div>`;
+    if (falhas) msg += `<div class="aviso aviso-alerta">⚠️ ${falhas} falharam ao salvar — tente novamente para esses.</div>`;
+    if (erros.length) msg += `<div class="aviso aviso-alerta">${erros.map(e=>esc(e)).join('<br>')}</div>`;
+    resultadoEl.innerHTML = msg;
+    if (!usandoFirebase) renderAgentes();
+    toast(`${sucesso} usuário(s) importado(s).`, 'ok');
+  });
 }
 
 // ---------- PAINEL DIOCESE ----------
