@@ -1238,8 +1238,27 @@ function fazerLogin() {
   if (paroquia === '__admin__') {
     const usuario = document.getElementById('login-usuario-texto').value.trim();
     if (!usuario) { mostrarErroLogin('Digite o usuário.'); return; }
+
+    // 1. Usuário admin fixo (padrão do sistema)
     const u = usuariosPadrao.find(u => u.usuario === usuario && u.senha === senha);
     if (u) { iniciarSessao({ ...u }); return; }
+
+    // 2. Usuários Admin Diocese cadastrados na aba Usuários (localStorage)
+    const adminsLocal = JSON.parse(localStorage.getItem('df_agentes___admin__') || '[]');
+    const adminLocal = adminsLocal.find(a => a.usuario === usuario && a.senha === senha && a.nivel === 'admin');
+    if (adminLocal) { iniciarSessao(adminLocal); return; }
+
+    // 3. Usuários Admin Diocese cadastrados na aba Usuários (Firebase)
+    if (usandoFirebase && db) {
+      db.collection('agentes').where('usuario', '==', usuario).where('nivel', '==', 'admin').get()
+        .then(snap => {
+          const doc = snap.docs.find(d => d.data().senha === senha);
+          if (doc) { iniciarSessao({ id: doc.id, ...doc.data() }); return; }
+          mostrarErroLogin('Usuário ou senha incorretos.');
+        }).catch(err => mostrarErroLogin('Erro ao verificar credenciais: ' + err.message));
+      return;
+    }
+
     mostrarErroLogin('Usuário ou senha incorretos.');
     return;
   }
@@ -1262,7 +1281,7 @@ function fazerLogin() {
           if (doc.senha === senha) { iniciarSessao({ id: snap.docs[0].id, ...doc }); return; }
         }
         mostrarErroLogin('Senha incorreta.');
-      }).catch(() => mostrarErroLogin('Erro ao verificar credenciais.'));
+      }).catch(err => mostrarErroLogin('Erro ao verificar credenciais: ' + err.message));
     return;
   }
 
@@ -1344,7 +1363,7 @@ function carregarDados() {
       familias = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderFamilias();
       if (document.getElementById('secao-painel').classList.contains('ativa')) renderPainel();
-    });
+    }, err => toast('Erro ao carregar famílias: ' + err.message, 'erro'));
 
     const qEnt = usuarioAtual.nivel === 'admin'
       ? db.collection('entregas')
@@ -1353,7 +1372,7 @@ function carregarDados() {
       entregas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderHistorico();
       if (document.getElementById('secao-painel').classList.contains('ativa')) renderPainel();
-    });
+    }, err => toast('Erro ao carregar entregas: ' + err.message, 'erro'));
 
     if (usuarioAtual.nivel !== 'agente') {
       const qAg = usuarioAtual.nivel === 'admin'
@@ -1362,7 +1381,7 @@ function carregarDados() {
       qAg.onSnapshot(snap => {
         agentes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderAgentes();
-      });
+      }, err => toast('Erro ao carregar usuários: ' + err.message, 'erro'));
     }
   } else {
     // localStorage
@@ -1375,6 +1394,7 @@ function carregarDados() {
         const lista = JSON.parse(localStorage.getItem('df_agentes_' + p) || '[]');
         agentes = agentes.concat(lista);
       });
+      agentes = agentes.concat(JSON.parse(localStorage.getItem('df_agentes___admin__') || '[]'));
     } else {
       familias = JSON.parse(localStorage.getItem('df_familias_' + usuarioAtual.paroquia) || '[]');
       entregas = JSON.parse(localStorage.getItem('df_entregas_' + usuarioAtual.paroquia) || '[]');
@@ -1945,19 +1965,20 @@ function renderAgentes() {
   }
 
   const ordenado = [...lista].sort((a,b) => {
-    if (a.nivel !== b.nivel) return a.nivel === 'responsavel' ? -1 : 1;
+    const ordem = { admin: 0, responsavel: 1, agente: 2 };
+    if (a.nivel !== b.nivel) return (ordem[a.nivel] ?? 3) - (ordem[b.nivel] ?? 3);
     return (a.paroquia||'').localeCompare(b.paroquia||'');
   });
 
   tbody.innerHTML = ordenado.map(a => {
     const podeRemover = isAdmin || (usuarioAtual.nivel === 'responsavel' && a.nivel === 'agente' && a.paroquia === usuarioAtual.paroquia);
-    const badgeClass = a.nivel === 'responsavel' ? 'badge-ativo' : 'badge-inativo';
-    const badgeLabel = a.nivel === 'responsavel' ? 'Responsável' : 'Agente';
+    const badgeClass = a.nivel === 'admin' ? 'badge-ativo' : a.nivel === 'responsavel' ? 'badge-ativo' : 'badge-inativo';
+    const badgeLabel = a.nivel === 'admin' ? 'Admin Diocese' : a.nivel === 'responsavel' ? 'Responsável' : 'Agente';
     return `<tr>
       <td><strong>${esc(a.nome)}</strong></td>
       <td><code>${esc(a.usuario)}</code></td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
-      ${isAdmin ? `<td style="font-size:0.82rem;color:var(--cinza-texto);">${esc(a.paroquia||'—')}</td>` : ''}
+      ${isAdmin ? `<td style="font-size:0.82rem;color:var(--cinza-texto);">${a.nivel === 'admin' ? '— Diocese —' : esc(a.paroquia||'—')}</td>` : ''}
       <td>${podeRemover ? `<button class="btn btn-perigo btn-sm" onclick="removerAgente('${a.id}')">Remover</button>` : '—'}</td>
     </tr>`;
   }).join('');
@@ -1974,21 +1995,41 @@ function abrirModalAgente() {
     grupoNivel.style.display = '';
     document.getElementById('a-nivel').innerHTML = `
       <option value="responsavel">Responsável (Admin paróquia)</option>
-      <option value="agente">Agente (entrada de dados)</option>`;
+      <option value="agente">Agente (entrada de dados)</option>
+      <option value="admin">Admin Diocese (acesso total)</option>`;
+    document.getElementById('a-nivel').onchange = () => atualizarFormNovoUsuario();
     const selPar = document.getElementById('a-paroquia');
     selPar.innerHTML = LISTA_PAROQUIAS.map(p => `<option>${p}</option>`).join('');
     selPar.onchange = () => atualizarSelectCapela(selPar.value, 'a-capela', '', true, '— Nenhuma (matriz) —');
     document.getElementById('grupo-a-paroquia').style.display = '';
+    atualizarFormNovoUsuario();
   } else {
     grupoNivel.style.display = 'none';
     document.getElementById('a-nivel').innerHTML = '<option value="agente">Agente</option>';
     document.getElementById('grupo-a-paroquia').style.display = 'none';
   }
-  const parAgente = document.getElementById('a-paroquia') && document.getElementById('a-paroquia').value
-    ? document.getElementById('a-paroquia').value
-    : usuarioAtual.paroquia;
-  atualizarSelectCapela(parAgente, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  const nivelSelecionado = document.getElementById('a-nivel').value;
+  if (nivelSelecionado !== 'admin') {
+    const parAgente = document.getElementById('a-paroquia') && document.getElementById('a-paroquia').value
+      ? document.getElementById('a-paroquia').value
+      : usuarioAtual.paroquia;
+    atualizarSelectCapela(parAgente, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  }
   abrirModal('modal-agente');
+}
+
+function atualizarFormNovoUsuario() {
+  const nivel = document.getElementById('a-nivel').value;
+  const ehAdmin = nivel === 'admin';
+  document.getElementById('grupo-a-paroquia').style.display = ehAdmin ? 'none' : '';
+  if (ehAdmin) {
+    const grupoCapela = document.getElementById('grupo-a-capela');
+    if (grupoCapela) grupoCapela.style.display = 'none';
+  } else {
+    const selPar = document.getElementById('a-paroquia');
+    const par = selPar && selPar.value ? selPar.value : usuarioAtual.paroquia;
+    atualizarSelectCapela(par, 'a-capela', '', true, '— Nenhuma (matriz) —');
+  }
 }
 
 function salvarAgente() {
@@ -1997,16 +2038,16 @@ function salvarAgente() {
   const usuario = document.getElementById('a-usuario').value.trim();
   const senha = document.getElementById('a-senha').value.trim();
   const nivel = isAdmin ? document.getElementById('a-nivel').value : 'agente';
-  const paroquia = isAdmin ? document.getElementById('a-paroquia').value : usuarioAtual.paroquia;
+  const paroquia = nivel === 'admin' ? '__admin__' : (isAdmin ? document.getElementById('a-paroquia').value : usuarioAtual.paroquia);
 
   if (!nome||!usuario||!senha) { toast('Preencha todos os campos.','erro'); return; }
-  if (isAdmin && !paroquia) { toast('Selecione a paróquia.','erro'); return; }
+  if (isAdmin && nivel !== 'admin' && !paroquia) { toast('Selecione a paróquia.','erro'); return; }
 
   const duplo = agentes.find(a => a.usuario === usuario && a.id !== document.getElementById('a-id').value);
   if (duplo) { toast('Esse nome de usuário já existe.','erro'); return; }
 
   const capelaSel = document.getElementById('a-capela');
-  const capela = capelaSel ? capelaSel.value : '';
+  const capela = (nivel !== 'admin' && capelaSel) ? capelaSel.value : '';
   const agente = { nome, usuario, senha, nivel, paroquia, capela };
 
   if (usandoFirebase && db) {
