@@ -46,6 +46,9 @@
   .badge-nivel{background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:0.75rem;font-weight:600;}
   .btn-sair{background:rgba(255,255,255,0.15);border:none;color:var(--branco);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:0.82rem;transition:background 0.2s;}
   .btn-sair:hover{background:rgba(255,255,255,0.3);}
+  .btn-topbar-acao{background:rgba(255,255,255,0.15);border:none;color:var(--branco);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:0.78rem;font-weight:600;white-space:nowrap;transition:background 0.2s;}
+  .btn-topbar-acao:hover{background:rgba(255,255,255,0.3);}
+  .btn-topbar-acao:disabled{opacity:0.6;cursor:default;}
   .abas{background:var(--branco);border-bottom:2px solid var(--cinza-medio);display:flex;padding:0 16px;overflow-x:auto;gap:2px;}
   .aba{padding:13px 18px;font-size:0.88rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--cinza-texto);transition:all 0.2s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;}
   .aba:hover{color:var(--vermelho);}
@@ -179,6 +182,10 @@
     .topbar-paroquia{display:none;}
     .badge-nivel{display:none;}
     .btn-sair{padding:5px 10px;font-size:0.78rem;}
+    .btn-topbar-acao{padding:5px 8px;font-size:0;}
+    .btn-topbar-acao::before{font-size:0.9rem;}
+    #btn-topbar-atualizar::before{content:"🔄";}
+    #btn-topbar-nova-versao::before{content:"⬇️";}
 
     /* Abas — scroll horizontal */
     .abas{padding:0 8px;gap:0;}
@@ -437,6 +444,8 @@
     </div>
     <div class="topbar-dir">
       <span class="badge-nivel" id="topbar-nivel"></span>
+      <button class="btn-topbar-acao" id="btn-topbar-atualizar" onclick="atualizarDados()" title="Recarregar os dados da tela atual">🔄 Atualizar</button>
+      <button class="btn-topbar-acao" id="btn-topbar-nova-versao" onclick="atualizarApp()" title="Buscar a versão mais recente publicada">⬇️ Nova Versão do App</button>
       <button class="btn-ajuda" onclick="abrirAjuda()" title="Ajuda">?</button>
       <button class="btn-sair" onclick="sair()">Sair</button>
     </div>
@@ -1299,6 +1308,8 @@ function aoSelecionarParoquia() {
 }
 
 function atualizarApp() {
+  const confirmado = confirm('A página vai recarregar buscando a versão mais recente do sistema, ignorando o que está guardado em cache no navegador — equivalente a um Ctrl+Shift+R. Você precisará entrar novamente. Continuar?');
+  if (!confirmado) return;
   toast('Atualizando o aplicativo...', 'ok');
   const urlLimpa = location.origin + location.pathname + '?v=' + Date.now();
   setTimeout(() => { location.href = urlLimpa; }, 300);
@@ -1425,6 +1436,20 @@ function mudarAba(aba) {
   if (aba === 'historico') renderHistorico();
   if (aba === 'agentes') renderAgentes();
   if (aba === 'painel') renderPainel();
+}
+
+function atualizarDados() {
+  const btn = document.getElementById('btn-topbar-atualizar');
+  if (btn) {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = '🔄 Atualizando...';
+    setTimeout(() => { btn.disabled = false; btn.textContent = original; }, 1200);
+  }
+  const abaAtiva = document.querySelector('.aba.ativa');
+  const aba = abaAtiva ? abaAtiva.id.replace('aba-', '') : '';
+  if (aba) mudarAba(aba);
+  toast('Dados atualizados! 🔄', 'ok');
 }
 
 // ---------- DADOS ----------
