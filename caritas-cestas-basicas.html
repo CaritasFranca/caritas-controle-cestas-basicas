@@ -462,7 +462,7 @@
         <button class="btn btn-primario" onclick="abrirModalFamilia()">+ Nova Família</button>
       </div>
       <div class="busca-wrap">
-        <input class="busca-input" type="text" id="busca-familia" placeholder="Buscar por nome ou CPF..." oninput="renderFamilias()">
+        <input class="busca-input" type="text" id="busca-familia" placeholder="Buscar por nome, CPF ou CEP..." oninput="renderFamilias()">
         <label class="checkbox-inativo"><input type="checkbox" id="mostrar-inativos" onchange="renderFamilias()"> Mostrar inativas</label>
       </div>
       <div class="tabela-wrap" id="tabela-familias-wrap">
@@ -495,7 +495,7 @@
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Responsável</th><th>Observação</th></tr></thead>
+          <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Paróquia / Origem da cesta</th><th>Responsável</th><th>Observação</th></tr></thead>
           <tbody id="tabela-historico"></tbody>
         </table>
       </div>
@@ -749,7 +749,7 @@
             <li>Digite o CEP primeiro — o sistema preenche automaticamente rua, bairro e cidade. Depois é só completar o número da casa.</li>
             <li>Preencha nome, CPF e quantidade de pessoas na casa. O CPF e o endereço ajudam o sistema a evitar cadastro duplicado.</li>
             <li>Se aparecer um aviso de endereço parecido, confira se a família já não está cadastrada antes de continuar.</li>
-            <li>Use a busca no topo para encontrar uma família já cadastrada pelo nome ou CPF.</li>
+            <li>Use a busca no topo para encontrar uma família já cadastrada pelo nome, CPF ou CEP.</li>
             <li>Famílias que pararam de ser atendidas podem ser marcadas como <strong>inativas</strong> em vez de apagadas — assim o histórico delas não se perde.</li>
           </ol>
           <div class="aviso aviso-alerta">⚠️ Evite cadastrar a mesma família duas vezes. Sempre busque pelo nome ou CPF antes de criar um novo cadastro.</div>
@@ -761,6 +761,8 @@
           <ol class="ajuda-passos">
             <li>Digite o nome ou CPF da família no campo de busca.</li>
             <li>Clique na família certa na lista de resultados.</li>
+            <li>Se você for Admin Diocese, escolha a paróquia que está entregando (pode ser diferente da paróquia onde a família está cadastrada).</li>
+            <li>Informe se a cesta veio do estoque próprio da paróquia ou se foi recebida por compartilhamento — nesse caso, escolha de qual paróquia veio.</li>
             <li>Confirme a entrega. O sistema registra automaticamente a data e quem fez a entrega.</li>
           </ol>
           <div class="aviso aviso-info">💡 Se a família não aparecer na busca, verifique se ela já está cadastrada na aba Famílias.</div>
@@ -1082,6 +1084,46 @@
     <div class="modal-footer">
       <button class="btn btn-secundario" onclick="fecharModal('modal-agente')">Cancelar</button>
       <button class="btn btn-primario" onclick="salvarAgente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ENTREGA -->
+<div class="modal-overlay" id="modal-confirmar-entrega">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📦 Confirmar Entrega</h2>
+      <button class="modal-fechar" onclick="fecharModal('modal-confirmar-entrega')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;font-size:0.95rem;">Família: <strong id="ce-familia-nome"></strong></p>
+
+      <div class="form-grupo" id="grupo-ce-paroquia" style="margin-bottom:14px;display:none;">
+        <label>Paróquia que está entregando *</label>
+        <select id="ce-paroquia" onchange="atualizarOrigemEntrega()"></select>
+      </div>
+
+      <div class="form-grupo" style="margin-bottom:14px;">
+        <label>De onde veio esta cesta?</label>
+        <select id="ce-origem" onchange="atualizarOrigemEntrega()">
+          <option value="propria">Estoque próprio da paróquia</option>
+          <option value="compartilhamento">Recebida por compartilhamento de outra paróquia</option>
+        </select>
+      </div>
+
+      <div class="form-grupo" id="grupo-ce-origem-paroquia" style="margin-bottom:14px;display:none;">
+        <label>Paróquia que compartilhou *</label>
+        <select id="ce-origem-paroquia"></select>
+      </div>
+
+      <div class="form-grupo full">
+        <label>Observação</label>
+        <input type="text" id="ce-obs" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modal-confirmar-entrega')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarEntregaModal()">✅ Confirmar Entrega</button>
     </div>
   </div>
 </div>
@@ -1460,8 +1502,11 @@ function getFamiliasFiltradas() {
   return familias.filter(f => {
     if (!mostrarInativos && f.inativo) return false;
     if (busca) {
-      return (f.nome || '').toLowerCase().includes(busca) ||
-             (f.cpf || '').includes(busca);
+      if ((f.nome || '').toLowerCase().includes(busca)) return true;
+      if ((f.cpf || '').includes(busca)) return true;
+      const buscaDigitos = busca.replace(/\D/g,'');
+      if (buscaDigitos && (f.cep||'').replace(/\D/g,'').includes(buscaDigitos)) return true;
+      return false;
     }
     return true;
   });
@@ -1780,7 +1825,7 @@ function verFamilia(id) {
   const footer = document.getElementById('modal-ver-familia-footer');
   footer.innerHTML = `<button class="btn btn-secundario" onclick="fecharModal('modal-ver-familia')">Fechar</button>`;
   if (podeEditar() && !f.inativo) {
-    footer.innerHTML += `<button class="btn btn-primario" onclick="registrarEntregaRapida('${id}')">📦 Registrar Entrega</button>`;
+    footer.innerHTML += `<button class="btn btn-primario" onclick="abrirModalConfirmarEntrega('${id}')">📦 Registrar Entrega</button>`;
   }
   abrirModal('modal-ver-familia');
 }
@@ -1863,43 +1908,99 @@ function buscarFamiliaEntrega() {
         <span style="font-size:0.82rem;color:var(--cinza-texto);">${esc(f.bairro||'')}${f.bairro&&f.cidade?', ':''}${esc(f.cidade||'')} · ${f.pessoas||1} pessoas</span>
         ${jaDeu ? '<br><span style="font-size:0.78rem;color:var(--amarelo);font-weight:600;">⚠️ Já recebeu cesta este mês</span>' : ''}
       </div>
-      <button class="btn btn-primario btn-sm" onclick="registrarEntregaRapida('${f.id}')">📦 Registrar Entrega</button>
+      <button class="btn btn-primario btn-sm" onclick="abrirModalConfirmarEntrega('${f.id}')">📦 Registrar Entrega</button>
     </div>`;
   }).join('');
 }
 
-function registrarEntregaRapida(familiaId) {
+let entregaEmAndamentoFamiliaId = null;
+
+function abrirModalConfirmarEntrega(familiaId) {
   const f = familias.find(x => x.id === familiaId);
   if (!f) return;
   fecharModal('modal-ver-familia');
+  entregaEmAndamentoFamiliaId = familiaId;
 
-  const obs = prompt(`Registrar entrega para: ${f.nome}\n\nObservação (opcional):`);
-  if (obs === null) return;
+  document.getElementById('ce-familia-nome').textContent = f.nome;
+  document.getElementById('ce-obs').value = '';
+
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  const grupoParoquia = document.getElementById('grupo-ce-paroquia');
+  if (isAdmin) {
+    grupoParoquia.style.display = '';
+    const sel = document.getElementById('ce-paroquia');
+    sel.innerHTML = LISTA_PAROQUIAS.map(p => `<option ${p === f.paroquia ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  } else {
+    grupoParoquia.style.display = 'none';
+  }
+
+  document.getElementById('ce-origem').value = 'propria';
+  atualizarOrigemEntrega();
+  abrirModal('modal-confirmar-entrega');
+}
+
+function paroquiaSelecionadaEntrega() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  return isAdmin ? document.getElementById('ce-paroquia').value : usuarioAtual.paroquia;
+}
+
+function atualizarOrigemEntrega() {
+  const origem = document.getElementById('ce-origem').value;
+  const grupo = document.getElementById('grupo-ce-origem-paroquia');
+  if (origem !== 'compartilhamento') { grupo.style.display = 'none'; return; }
+
+  grupo.style.display = '';
+  const par = paroquiaSelecionadaEntrega();
+  const e = estoques[par];
+  const origensRecebidas = (e && e.recebidosCompartilhamento) ? Object.keys(e.recebidosCompartilhamento) : [];
+  const sel = document.getElementById('ce-origem-paroquia');
+  const opcoes = origensRecebidas.length ? origensRecebidas : LISTA_PAROQUIAS.filter(p => p !== par);
+  sel.innerHTML = opcoes.map(p => `<option>${esc(p)}</option>`).join('');
+}
+
+function confirmarEntregaModal() {
+  const f = familias.find(x => x.id === entregaEmAndamentoFamiliaId);
+  if (!f) return;
+
+  const paroquiaEntrega = paroquiaSelecionadaEntrega();
+  if (!paroquiaEntrega) { toast('Selecione a paróquia que está entregando.', 'erro'); return; }
+
+  const origem = document.getElementById('ce-origem').value;
+  const paroquiaOrigemCesta = origem === 'compartilhamento' ? document.getElementById('ce-origem-paroquia').value : '';
+  if (origem === 'compartilhamento' && !paroquiaOrigemCesta) { toast('Selecione de qual paróquia veio a cesta.', 'erro'); return; }
+
+  const obs = document.getElementById('ce-obs').value.trim();
 
   const entrega = {
-    familiaId,
+    familiaId: f.id,
     familiaNome: f.nome,
     familiaCpf: f.cpf,
     paroquia: f.paroquia,
+    paroquiaEntrega,
+    origemCesta: origem,
+    paroquiaOrigemCesta,
     data: new Date().toISOString().slice(0,10),
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
-    obs: obs.trim()
+    obs
+  };
+
+  const aoSalvar = () => {
+    descontarEstoque(paroquiaEntrega);
+    toast('Entrega registrada! ✅', 'ok');
+    fecharModal('modal-confirmar-entrega');
+    document.getElementById('entrega-busca').value = '';
+    document.getElementById('entrega-resultado').innerHTML = '';
   };
 
   if (usandoFirebase && db) {
-    db.collection('entregas').add(entrega)
-      .then(() => { descontarEstoque(f.paroquia); toast('Entrega registrada! ✅', 'ok'); })
-      .catch(e => toast('Erro: ' + e.message, 'erro'));
+    db.collection('entregas').add(entrega).then(aoSalvar).catch(e => toast('Erro: ' + e.message, 'erro'));
   } else {
     entrega.id = 'e_' + Date.now();
     entregas.push(entrega);
-    descontarEstoque(f.paroquia);
     salvarLocal();
     renderHistorico();
-    toast('Entrega registrada! ✅', 'ok');
+    aoSalvar();
   }
-  document.getElementById('entrega-busca').value = '';
-  document.getElementById('entrega-resultado').innerHTML = '';
 }
 
 // ---------- HISTÓRICO ----------
@@ -1920,17 +2021,28 @@ function renderHistorico() {
   lista = lista.sort((a,b) => b.data.localeCompare(a.data));
   const tbody = document.getElementById('tabela-historico');
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = lista.map(e => `
+  tbody.innerHTML = lista.map(e => {
+    const paroquiaEntrega = e.paroquiaEntrega || e.paroquia || '—';
+    let origemHtml = `<span style="font-size:0.82rem;">${esc(paroquiaEntrega)}</span>`;
+    if (e.paroquiaEntrega && e.paroquia && e.paroquiaEntrega !== e.paroquia) {
+      origemHtml += `<br><span style="font-size:0.74rem;color:var(--cinza-texto);">(família é de ${esc(e.paroquia)})</span>`;
+    }
+    if (e.origemCesta === 'compartilhamento' && e.paroquiaOrigemCesta) {
+      origemHtml += `<br><span style="font-size:0.76rem;color:var(--verde);font-weight:600;">🔄 recebida de ${esc(e.paroquiaOrigemCesta)}</span>`;
+    }
+    return `
     <tr>
       <td><strong class="historico-data">${formatarData(e.data)}</strong></td>
       <td>${esc(e.familiaNome||'—')}</td>
       <td>${esc(e.familiaCpf||'—')}</td>
+      <td>${origemHtml}</td>
       <td>${esc(e.responsavel||'—')}</td>
       <td>${esc(e.obs||'—')}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ---------- AGENTES ----------
