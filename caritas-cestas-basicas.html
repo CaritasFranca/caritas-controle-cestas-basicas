@@ -488,8 +488,8 @@
       <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Registrar Entrega de Cesta</h2>
       <div class="tabela-wrap" style="padding:20px;">
         <div class="form-grupo" style="margin-bottom:14px;">
-          <label>Buscar família pelo nome ou CPF</label>
-          <input type="text" id="entrega-busca" placeholder="Digite nome ou CPF..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+          <label>Buscar família pelo nome, CPF ou CEP</label>
+          <input type="text" id="entrega-busca" placeholder="Digite nome, CPF ou CEP..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
         </div>
         <div id="entrega-resultado"></div>
       </div>
@@ -768,7 +768,7 @@
           <h3>📦 Registrar Entrega</h3>
           <p class="ajuda-intro">Use esta aba toda vez que uma família receber uma cesta básica.</p>
           <ol class="ajuda-passos">
-            <li>Digite o nome ou CPF da família no campo de busca.</li>
+            <li>Digite o nome, CPF ou CEP da família no campo de busca.</li>
             <li>Clique na família certa na lista de resultados.</li>
             <li>Se você for Admin Diocese, escolha a paróquia que está entregando (pode ser diferente da paróquia onde a família está cadastrada).</li>
             <li>Informe se a cesta veio do estoque próprio da paróquia ou se foi recebida por compartilhamento — nesse caso, escolha de qual paróquia veio.</li>
@@ -1917,8 +1917,11 @@ function buscarFamiliaEntrega() {
   const busca = document.getElementById('entrega-busca').value.toLowerCase().trim();
   const resultado = document.getElementById('entrega-resultado');
   if (busca.length < 2) { resultado.innerHTML = ''; return; }
+  const buscaDigitos = busca.replace(/\D/g,'');
   const lista = familias.filter(f => !f.inativo && (
-    (f.nome||'').toLowerCase().includes(busca) || (f.cpf||'').includes(busca)
+    (f.nome||'').toLowerCase().includes(busca) ||
+    (f.cpf||'').includes(busca) ||
+    (buscaDigitos && (f.cep||'').replace(/\D/g,'').includes(buscaDigitos))
   ));
   if (!lista.length) {
     resultado.innerHTML = '<div class="vazio" style="padding:20px;"><p>Nenhuma família encontrada.</p></div>';
