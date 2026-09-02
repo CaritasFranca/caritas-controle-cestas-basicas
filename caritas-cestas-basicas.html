@@ -502,6 +502,7 @@
         <input type="month" id="filtro-mes-hist" onchange="renderHistorico()">
         <input class="busca-input" type="text" id="busca-historico" placeholder="Buscar por família, CPF ou CEP..." oninput="renderHistorico()" style="min-width:180px;">
       </div>
+      <div id="historico-resumo-origem" style="margin-bottom:14px;"></div>
       <div class="tabela-wrap">
         <table>
           <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Paróquia / Origem da cesta</th><th>Responsável</th><th>Observação</th></tr></thead>
@@ -2047,6 +2048,31 @@ function renderHistorico() {
     return cep && cep.includes(buscaDigitos);
   });
   lista = lista.sort((a,b) => b.data.localeCompare(a.data));
+
+  // Resumo: quantas entregas foram do estoque próprio vs. recebidas por compartilhamento
+  const resumoEl = document.getElementById('historico-resumo-origem');
+  if (resumoEl) {
+    const proprias = lista.filter(e => e.origemCesta !== 'compartilhamento').length;
+    const porOrigem = {};
+    lista.forEach(e => {
+      if (e.origemCesta === 'compartilhamento') {
+        const p = e.paroquiaOrigemCesta || 'origem não informada';
+        porOrigem[p] = (porOrigem[p] || 0) + 1;
+      }
+    });
+    const totalCompartilhadas = Object.values(porOrigem).reduce((a,b) => a+b, 0);
+    if (!lista.length) {
+      resumoEl.innerHTML = '';
+    } else {
+      const detalheOrigens = Object.entries(porOrigem).map(([p,q]) => `${esc(p)} (${q})`).join(', ');
+      resumoEl.innerHTML = `
+        <div class="aviso aviso-info" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+          <span>📦 <strong>${proprias}</strong> do estoque próprio</span>
+          <span>🔄 <strong>${totalCompartilhadas}</strong> recebida(s) por compartilhamento${detalheOrigens ? ' — ' + detalheOrigens : ''}</span>
+        </div>`;
+    }
+  }
+
   const tbody = document.getElementById('tabela-historico');
   if (!lista.length) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
