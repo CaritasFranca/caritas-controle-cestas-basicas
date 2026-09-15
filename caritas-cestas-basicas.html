@@ -53,6 +53,10 @@
   .aba{padding:13px 18px;font-size:0.88rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--cinza-texto);transition:all 0.2s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;}
   .aba:hover{color:var(--vermelho);}
   .aba.ativa{color:var(--vermelho);border-bottom-color:var(--vermelho);}
+  .subtoggle{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .subtoggle-btn{padding:9px 18px;border-radius:20px;border:1.5px solid var(--cinza-medio);background:var(--branco);font-weight:600;font-size:0.85rem;cursor:pointer;color:var(--cinza-texto);transition:all .2s;}
+  .subtoggle-btn:hover{border-color:var(--vermelho);}
+  .subtoggle-btn.ativo{border-color:var(--vermelho);color:var(--vermelho);background:var(--vermelho-fundo);}
   .conteudo{flex:1;padding:24px;max-width:1100px;margin:0 auto;width:100%;min-width:0;overflow-x:hidden;}
   .secao{display:none;}.secao.ativa{display:block;}
   .cards-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
@@ -485,13 +489,41 @@
 
     <!-- ENTREGAS -->
     <div class="secao" id="secao-entregas">
-      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Registrar Entrega de Cesta</h2>
-      <div class="tabela-wrap" style="padding:20px;">
-        <div class="form-grupo" style="margin-bottom:14px;">
-          <label>Buscar família pelo nome, CPF ou CEP</label>
-          <input type="text" id="entrega-busca" placeholder="Digite nome, CPF ou CEP..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+      <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:14px;">Registrar Entrega de Cesta</h2>
+
+      <div class="subtoggle">
+        <button class="subtoggle-btn ativo" id="seg-entrega-familia" onclick="mudarDestinoEntrega('familia')">🏠 Para Família</button>
+        <button class="subtoggle-btn" id="seg-entrega-paroquia" onclick="mudarDestinoEntrega('paroquia')">⛪ Para Outra Paróquia</button>
+      </div>
+
+      <div id="entrega-destino-familia">
+        <div class="tabela-wrap" style="padding:20px;">
+          <div class="form-grupo" style="margin-bottom:14px;">
+            <label>Buscar família pelo nome, CPF ou CEP</label>
+            <input type="text" id="entrega-busca" placeholder="Digite nome, CPF ou CEP..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+          </div>
+          <div id="entrega-resultado"></div>
         </div>
-        <div id="entrega-resultado"></div>
+      </div>
+
+      <div id="entrega-destino-paroquia" style="display:none;">
+        <div class="tabela-wrap" style="padding:20px;">
+          <div class="aviso aviso-info" style="margin-bottom:14px;">
+            Use isto para destinar cestas do seu estoque diretamente para outra paróquia específica — diferente do compartilhamento aberto a todas em 🧺 Estoque. Depois de atender as famílias e as paróquias que quiser, o que sobrar pode ser disponibilizado em <strong>Estoque → Definir disponível p/ compartilhar</strong>, para as demais paróquias verem e solicitarem.
+          </div>
+          <div class="form-grid">
+            <div class="form-grupo" id="grupo-entpar-origem" style="display:none;">
+              <label>Paróquia que está enviando *</label>
+              <select id="entpar-origem" onchange="prepararEntregaParaParoquia()"></select>
+            </div>
+            <div class="form-grupo"><label>Paróquia de destino *</label><select id="entpar-destino"></select></div>
+            <div class="form-grupo"><label>Quantidade de cestas *</label><input type="number" id="entpar-qtd" min="1" placeholder="Ex: 10"></div>
+            <div class="form-grupo"><label>Data *</label><input type="date" id="entpar-data"></div>
+            <div class="form-grupo full"><label>Observação</label><input type="text" id="entpar-obs" placeholder="Opcional"></div>
+          </div>
+          <div id="entpar-saldo-info" style="margin:14px 0;font-size:0.88rem;color:var(--cinza-texto);"></div>
+          <button class="btn btn-primario" onclick="confirmarEntregaParaParoquia()">📦 Confirmar Destinação</button>
+        </div>
       </div>
     </div>
 
@@ -1434,6 +1466,7 @@ function mudarAba(aba) {
   if (aba === 'familias') renderFamilias();
   if (aba === 'estoque') { renderEstoque(); renderCompartilhamentos(); }
   if (aba === 'chat') { iniciarChat(); document.getElementById('chat-badge').style.display='none'; }
+  if (aba === 'entregas') mudarDestinoEntrega('familia');
   if (aba === 'historico') renderHistorico();
   if (aba === 'agentes') renderAgentes();
   if (aba === 'painel') renderPainel();
@@ -2791,6 +2824,76 @@ function confirmarRegistroCompartilhamento() {
   registrarRecebimentoPorCompartilhamento(destino, origem, qtd, data);
   toast(`Compartilhamento registrado: ${qtd} cesta(s) de ${origem} para ${destino}.`, 'ok');
   fecharModal('modal-registrar-compartilhamento');
+}
+
+// ── Destinar cestas direto para outra paróquia (a partir da aba Registrar Entrega) ──
+function mudarDestinoEntrega(tipo) {
+  document.getElementById('seg-entrega-familia').classList.toggle('ativo', tipo === 'familia');
+  document.getElementById('seg-entrega-paroquia').classList.toggle('ativo', tipo === 'paroquia');
+  document.getElementById('entrega-destino-familia').style.display = tipo === 'familia' ? '' : 'none';
+  document.getElementById('entrega-destino-paroquia').style.display = tipo === 'paroquia' ? '' : 'none';
+  if (tipo === 'paroquia') prepararEntregaParaParoquia();
+}
+
+function prepararEntregaParaParoquia() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  const grupoOrigem = document.getElementById('grupo-entpar-origem');
+  grupoOrigem.style.display = isAdmin ? '' : 'none';
+
+  if (isAdmin) {
+    const origemSelect = document.getElementById('entpar-origem');
+    if (!origemSelect.options.length) {
+      origemSelect.innerHTML = LISTA_PAROQUIAS.map(p => `<option>${p}</option>`).join('');
+    }
+  }
+  const origem = isAdmin ? document.getElementById('entpar-origem').value : usuarioAtual.paroquia;
+
+  document.getElementById('entpar-destino').innerHTML = LISTA_PAROQUIAS
+    .filter(p => p !== origem)
+    .map(p => `<option>${p}</option>`).join('');
+
+  const saldo = getSaldoParoquia(origem);
+  document.getElementById('entpar-saldo-info').innerHTML = saldo !== null
+    ? `Saldo interno de <strong>${esc(origem)}</strong>: <strong>${saldo}</strong> cesta(s).`
+    : `Nenhum estoque lançado ainda para ${esc(origem)}.`;
+
+  if (!document.getElementById('entpar-data').value) {
+    document.getElementById('entpar-data').value = new Date().toISOString().slice(0,10);
+  }
+}
+
+function confirmarEntregaParaParoquia() {
+  const isAdmin = usuarioAtual.nivel === 'admin';
+  const origem = isAdmin ? document.getElementById('entpar-origem').value : usuarioAtual.paroquia;
+  const destino = document.getElementById('entpar-destino').value;
+
+  if (!origem || !destino) { toast('Selecione a paróquia de destino.', 'erro'); return; }
+  if (origem === destino) { toast('A paróquia de origem e a de destino devem ser diferentes.', 'erro'); return; }
+
+  const qtd = parseInt(document.getElementById('entpar-qtd').value);
+  if (!qtd || qtd < 1) { toast('Informe uma quantidade válida.', 'erro'); return; }
+
+  const saldo = getSaldoParoquia(origem);
+  if (saldo !== null && qtd > saldo) { toast(`Não pode ultrapassar o saldo interno de ${origem} (${saldo}).`, 'erro'); return; }
+
+  const data = document.getElementById('entpar-data').value || new Date().toISOString().slice(0,10);
+  const obs = document.getElementById('entpar-obs').value.trim();
+
+  const registro = {
+    origem, destino, quantidade: qtd, data, obs,
+    registradoPor: usuarioAtual.nome || usuarioAtual.usuario,
+    paroquiaRegistrador: usuarioAtual.paroquia,
+    criadoEm: new Date().toISOString()
+  };
+
+  salvarCompartilhamentoRealizado(registro);
+  descontarSaldoPorCompartilhamento(origem, qtd);
+  registrarRecebimentoPorCompartilhamento(destino, origem, qtd, data);
+  toast(`${qtd} cesta(s) destinada(s) de ${origem} para ${destino}.`, 'ok');
+
+  document.getElementById('entpar-qtd').value = '';
+  document.getElementById('entpar-obs').value = '';
+  prepararEntregaParaParoquia();
 }
 
 function salvarCompartilhamentoRealizado(registro) {
