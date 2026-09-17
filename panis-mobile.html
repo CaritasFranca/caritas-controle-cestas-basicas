@@ -64,6 +64,10 @@ button{font-family:inherit;cursor:pointer;}
 .list-item{padding:12px 14px;background:var(--card);border-bottom:1px solid var(--border-2);}
 .list-item:last-child{border-bottom:none;}
 .grouped{border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.combo-list{position:absolute;z-index:30;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;box-shadow:0 10px 26px -10px rgba(0,0,0,0.22);}
+.combo-item{padding:11px 13px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border-2);}
+.combo-item:last-child{border-bottom:none;}
+.combo-item:hover{background:var(--accent-bg);}
 #tela-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:56px 30px 30px;background:var(--bg);}
 .err{color:var(--red);font-size:13px;margin-top:6px;}
 .avatar{border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;}
@@ -325,6 +329,7 @@ function fazerLogin(){
 function iniciarSessao(u){
   usuarioAtual = u;
   localStorage.setItem('df_sessao', JSON.stringify(u));
+  localStorage.setItem('df_ultima_paroquia', u.paroquia);
   document.getElementById('tela-login').style.display = 'none';
   document.getElementById('app-root').style.display = 'block';
   document.getElementById('tb-paroquia').textContent = u.paroquia === '__admin__' ? 'Cáritas Diocesana de Franca' : u.paroquia;
@@ -341,6 +346,9 @@ function doLogout(){
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('tela-login').style.display = 'flex';
   document.getElementById('login-senha').value = '';
+  const ultimaParoquia = localStorage.getItem('df_ultima_paroquia') || '';
+  document.getElementById('login-paroquia').value = ultimaParoquia;
+  aoSelecionarParoquia();
 }
 
 function atualizarDados(){ toast('Atualizando dados...'); location.reload(); }
@@ -354,8 +362,14 @@ function novaVersaoApp(){
 (function tentarSessaoSalva(){
   try{
     const s = JSON.parse(localStorage.getItem('df_sessao')||'null');
-    if (s && s.paroquia) iniciarSessao(s);
+    if (s && s.paroquia){ iniciarSessao(s); return; }
   }catch(e){ localStorage.removeItem('df_sessao'); }
+  // Sem sessão ativa: pré-preencher com a última paróquia usada neste aparelho
+  const ultimaParoquia = localStorage.getItem('df_ultima_paroquia');
+  if (ultimaParoquia){
+    document.getElementById('login-paroquia').value = ultimaParoquia;
+    aoSelecionarParoquia();
+  }
 })();
 
 /* ================= LISTENERS FIREBASE ================= */
@@ -406,7 +420,7 @@ function goPainelDiocese(){ goTela('painelDiocese'); }
 function goChat(){ goTela('chat'); }
 function goConfig(){ goTela('config'); }
 function goMais(){ goTela('mais'); }
-function goEntregas(){ entregaDestino='familia'; entregaSelFamiliaId=null; goTela('entregas'); }
+function goEntregas(){ entregaDestino='familia'; entregaSelFamiliaId=null; entregaDestinoParoquia=''; goTela('entregas'); }
 function goNovaFamilia(){ goTela('novaFamilia'); }
 function abrirFamilia(id){ selectedFamilyId = id; goTela('familyDetail'); }
 
@@ -763,8 +777,18 @@ function renderEntregas(){
       <div style="font-size:12.5px;line-height:1.5;color:var(--text-2);background:oklch(96% 0.02 80);border-radius:12px;padding:12px 14px;">
         Use isso para destinar cestas direto para outra paróquia. Depois de atender famílias e paróquias específicas, o que sobrar fica disponível em <strong>Estoque → Compartilhar</strong>.
       </div>
-      ${isAdmin() ? `<div><label class="label">Paróquia que está enviando *</label><select id="ep-origem" onchange="entregaOrigemParoquia=this.value; render();">${paroquiasOrigem.map(p=>`<option ${p===entregaOrigemParoquia?'selected':''}>${esc(p)}</option>`).join('')}</select></div>` : ''}
-      <div><label class="label">Paróquia de destino *</label><select id="ep-destino">${LISTA_PAROQUIAS.filter(p=>p!==(entregaOrigemParoquia||minhaParoquia())).map(p=>`<option>${esc(p)}</option>`).join('')}</select></div>
+      ${isAdmin() ? `<div style="position:relative;" class="combo-wrap">
+        <label class="label">Paróquia que está enviando *</label>
+        <input type="text" id="combo-origem-input" placeholder="Digite para buscar..." value="${esc(entregaOrigemParoquia)}" autocomplete="off"
+          oninput="comboFiltrar('origem', this.value)" onfocus="comboFiltrar('origem', this.value)">
+        <div id="combo-origem-list" class="combo-list" style="display:none;"></div>
+      </div>` : ''}
+      <div style="position:relative;" class="combo-wrap">
+        <label class="label">Paróquia de destino *</label>
+        <input type="text" id="combo-destino-input" placeholder="Digite para buscar..." value="${esc(entregaDestinoParoquia)}" autocomplete="off"
+          oninput="comboFiltrar('destino', this.value)" onfocus="comboFiltrar('destino', this.value)">
+        <div id="combo-destino-list" class="combo-list" style="display:none;"></div>
+      </div>
       <div class="row" style="gap:10px;">
         <div style="flex:1;"><label class="label">Quantidade *</label><input type="number" id="ep-qtd" min="1" placeholder="Ex: 10"></div>
         <div style="flex:1;"><label class="label">Data *</label><input type="date" id="ep-data" value="${new Date().toISOString().slice(0,10)}"></div>
@@ -775,6 +799,33 @@ function renderEntregas(){
     `}
   </div>`;
 }
+
+function comboFiltrar(role, query){
+  const excluir = role === 'destino' ? (entregaOrigemParoquia || minhaParoquia()) : null;
+  const q = (query||'').trim().toLowerCase();
+  let lista = LISTA_PAROQUIAS.filter(p => p !== excluir);
+  if (q) lista = lista.filter(p => p.toLowerCase().includes(q));
+  lista = lista.slice(0, 8);
+  const el = document.getElementById('combo-'+role+'-list');
+  if (!el) return;
+  if (!lista.length){
+    el.innerHTML = '<div class="combo-item" style="color:var(--text-3);cursor:default;">Nenhuma paróquia encontrada</div>';
+    el.style.display = 'block';
+    return;
+  }
+  el.innerHTML = lista.map(p=>`<div class="combo-item" onmousedown="comboEscolher('${role}', decodeURIComponent('${encodeURIComponent(p)}'))">${esc(p)}</div>`).join('');
+  el.style.display = 'block';
+}
+function comboEscolher(role, valor){
+  if (role==='destino') entregaDestinoParoquia = valor;
+  else { entregaOrigemParoquia = valor; entregaDestinoParoquia = ''; }
+  render();
+}
+document.addEventListener('click', (e)=>{
+  if (!e.target.closest('.combo-wrap')){
+    document.querySelectorAll('.combo-list').forEach(el=> el.style.display='none');
+  }
+});
 
 function confirmarEntregaFamilia(){
   const f = familias.find(x=>x.id===entregaSelFamiliaId);
@@ -797,11 +848,12 @@ function confirmarEntregaFamilia(){
 
 function confirmarDestinacaoParoquia(){
   const origem = entregaOrigemParoquia || minhaParoquia();
-  const destino = document.getElementById('ep-destino').value;
+  const destino = entregaDestinoParoquia;
   const qtd = parseInt(document.getElementById('ep-qtd').value);
   const data = document.getElementById('ep-data').value;
   const obs = document.getElementById('ep-obs').value.trim();
-  if (!destino){ toast('Selecione a paróquia de destino.','erro'); return; }
+  if (!destino){ toast('Selecione a paróquia de destino na busca.','erro'); return; }
+  if (destino === origem){ toast('A paróquia de destino não pode ser igual à de origem.','erro'); return; }
   if (!qtd || qtd<1){ toast('Informe a quantidade.','erro'); return; }
   if (!data){ toast('Informe a data.','erro'); return; }
 
@@ -821,6 +873,7 @@ function confirmarDestinacaoParoquia(){
     db.collection('compartilhamentos').add(registro)
   ]).then(()=>{
     toast('Cestas destinadas com sucesso!','ok');
+    entregaDestinoParoquia = '';
     goTela('home');
   }).catch(e=> toast('Erro: '+e.message,'erro'));
 }

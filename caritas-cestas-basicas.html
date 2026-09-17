@@ -87,6 +87,12 @@
   .busca-wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
   .busca-input{padding:8px 14px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.9rem;outline:none;transition:border 0.2s;min-width:220px;}
   .busca-input:focus{border-color:var(--vermelho);}
+  .toggle-entrega-btn{cursor:pointer;padding:10px 20px;border-radius:10px;font-size:0.9rem;font-weight:600;border:1.5px solid var(--cinza-medio);background:#fff;color:#6b5f52;}
+  .toggle-entrega-btn.on{background:var(--vermelho);color:#fff;border-color:var(--vermelho);}
+  .combo-list-web{position:absolute;z-index:30;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--cinza-medio);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 10px 26px -10px rgba(0,0,0,0.25);}
+  .combo-item-web{padding:10px 14px;font-size:0.9rem;cursor:pointer;border-bottom:1px solid #eee;}
+  .combo-item-web:last-child{border-bottom:none;}
+  .combo-item-web:hover{background:#faf3e6;}
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
   .modal-overlay.aberto{display:flex;}
   .modal{background:var(--branco);border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:var(--sombra-forte);}
@@ -484,11 +490,43 @@
     <div class="secao" id="secao-entregas">
       <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:18px;">Registrar Entrega de Cesta</h2>
       <div class="tabela-wrap" style="padding:20px;">
-        <div class="form-grupo" style="margin-bottom:14px;">
-          <label>Buscar família pelo nome ou CPF</label>
-          <input type="text" id="entrega-busca" placeholder="Digite nome ou CPF..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+        <div style="display:flex;gap:8px;margin-bottom:18px;">
+          <button class="toggle-entrega-btn on" id="btn-destino-familia" onclick="setDestinoEntregaWeb('familia')">🏠 Para Família</button>
+          <button class="toggle-entrega-btn" id="btn-destino-paroquia" onclick="setDestinoEntregaWeb('paroquia')">⛪ Para Paróquia</button>
         </div>
-        <div id="entrega-resultado"></div>
+
+        <div id="bloco-entrega-familia">
+          <div class="form-grupo" style="margin-bottom:14px;">
+            <label>Buscar família pelo nome ou CPF</label>
+            <input type="text" id="entrega-busca" placeholder="Digite nome ou CPF..." oninput="buscarFamiliaEntrega()" class="busca-input" style="width:100%;max-width:400px;">
+          </div>
+          <div id="entrega-resultado"></div>
+        </div>
+
+        <div id="bloco-entrega-paroquia" style="display:none;max-width:460px;">
+          <div style="font-size:0.85rem;line-height:1.5;color:#6b5f52;background:#faf3e6;border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+            Use isso para destinar cestas direto para outra paróquia. Depois de atender famílias e paróquias específicas, o que sobrar fica disponível em <strong>Estoque → Compartilhar</strong>.
+          </div>
+          <div class="form-grupo" id="grupo-origem-paroquia" style="margin-bottom:14px;display:none;position:relative;">
+            <label>Paróquia que está enviando *</label>
+            <input type="text" id="combo-web-origem-input" placeholder="Digite para buscar..." autocomplete="off" class="busca-input" style="width:100%;"
+              oninput="comboWebFiltrar('origem', this.value)" onfocus="comboWebFiltrar('origem', this.value)">
+            <div id="combo-web-origem-list" class="combo-list-web" style="display:none;"></div>
+          </div>
+          <div class="form-grupo" style="margin-bottom:14px;position:relative;">
+            <label>Paróquia de destino *</label>
+            <input type="text" id="combo-web-destino-input" placeholder="Digite para buscar..." autocomplete="off" class="busca-input" style="width:100%;"
+              oninput="comboWebFiltrar('destino', this.value)" onfocus="comboWebFiltrar('destino', this.value)">
+            <div id="combo-web-destino-list" class="combo-list-web" style="display:none;"></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-bottom:14px;">
+            <div class="form-grupo" style="flex:1;"><label>Quantidade *</label><input type="number" id="pw-qtd" min="1" placeholder="Ex: 10" class="busca-input" style="width:100%;"></div>
+            <div class="form-grupo" style="flex:1;"><label>Data *</label><input type="date" id="pw-data" class="busca-input" style="width:100%;"></div>
+          </div>
+          <div class="form-grupo" style="margin-bottom:14px;"><label>Observação</label><input type="text" id="pw-obs" placeholder="Opcional" class="busca-input" style="width:100%;"></div>
+          <div style="font-size:0.82rem;color:#6b5f52;margin-bottom:18px;">Saldo disponível: <strong id="pw-saldo-disp" style="color:#2b241e;">0 cestas</strong></div>
+          <button class="btn btn-primario" onclick="confirmarDestinacaoParoquiaWeb()">Confirmar destinação</button>
+        </div>
       </div>
     </div>
 
@@ -1127,6 +1165,7 @@ function mostrarErroLogin(msg) {
 function iniciarSessao(u) {
   usuarioAtual = u;
   localStorage.setItem('df_sessao', JSON.stringify(u));
+  localStorage.setItem('df_ultima_paroquia', u.paroquia);
   document.getElementById('tela-login').style.display = 'none';
   document.getElementById('tela-app').style.display = 'flex';
   mostrarBtnInstalar();
@@ -1156,10 +1195,11 @@ function sair() {
   familias = []; entregas = []; agentes = [];
   document.getElementById('tela-app').style.display = 'none';
   document.getElementById('tela-login').style.display = 'flex';
-  document.getElementById('login-paroquia').value = '';
   document.getElementById('login-senha').value = '';
-  document.getElementById('login-usuario-select').value = '';
   document.getElementById('login-usuario-texto').value = '';
+  const ultimaParoquia = localStorage.getItem('df_ultima_paroquia') || '';
+  document.getElementById('login-paroquia').value = ultimaParoquia;
+  aoSelecionarParoquia();
   document.getElementById('login-campo-usuario').style.display = 'none';
   document.getElementById('login-campo-usuario-admin').style.display = 'none';
   document.getElementById('login-erro').style.display = 'none';
@@ -1723,6 +1763,131 @@ function registrarEntregaRapida(familiaId) {
   document.getElementById('entrega-resultado').innerHTML = '';
 }
 
+// ---------- ENTREGA: DESTINAR PARA OUTRA PARÓQUIA ----------
+let webEntregaOrigemParoquia = '';
+let webEntregaDestinoParoquia = '';
+
+function setDestinoEntregaWeb(tipo) {
+  document.getElementById('btn-destino-familia').classList.toggle('on', tipo === 'familia');
+  document.getElementById('btn-destino-paroquia').classList.toggle('on', tipo === 'paroquia');
+  document.getElementById('bloco-entrega-familia').style.display = tipo === 'familia' ? '' : 'none';
+  document.getElementById('bloco-entrega-paroquia').style.display = tipo === 'paroquia' ? '' : 'none';
+  if (tipo === 'paroquia') {
+    const ehAdmin = usuarioAtual.nivel === 'admin';
+    document.getElementById('grupo-origem-paroquia').style.display = ehAdmin ? '' : 'none';
+    if (!ehAdmin) {
+      webEntregaOrigemParoquia = usuarioAtual.paroquia;
+      atualizarSaldoDispWeb();
+    }
+    const campoData = document.getElementById('pw-data');
+    if (!campoData.value) campoData.value = new Date().toISOString().slice(0,10);
+  }
+}
+
+function origemAtualWeb() {
+  if (webEntregaOrigemParoquia) return webEntregaOrigemParoquia;
+  return usuarioAtual.paroquia === '__admin__' ? '' : usuarioAtual.paroquia;
+}
+
+function atualizarSaldoDispWeb() {
+  const origem = origemAtualWeb();
+  const saldo = origem ? getSaldoParoquia(origem) : null;
+  document.getElementById('pw-saldo-disp').textContent = origem ? (saldo != null ? saldo : 0) + ' cestas' : '— selecione a paróquia de origem —';
+}
+
+function comboWebFiltrar(role, query) {
+  const excluir = role === 'destino' ? origemAtualWeb() : null;
+  const q = (query || '').trim().toLowerCase();
+  let lista = LISTA_PAROQUIAS.filter(p => p !== excluir);
+  if (q) lista = lista.filter(p => p.toLowerCase().includes(q));
+  lista = lista.slice(0, 8);
+  const el = document.getElementById('combo-web-' + role + '-list');
+  if (!lista.length) {
+    el.innerHTML = '<div class="combo-item-web" style="color:#999;cursor:default;">Nenhuma paróquia encontrada</div>';
+    el.style.display = 'block';
+    return;
+  }
+  el.innerHTML = lista.map(p => `<div class="combo-item-web" onmousedown="comboWebEscolher('${role}', decodeURIComponent('${encodeURIComponent(p)}'))">${esc(p)}</div>`).join('');
+  el.style.display = 'block';
+}
+
+function comboWebEscolher(role, valor) {
+  if (role === 'destino') {
+    webEntregaDestinoParoquia = valor;
+    document.getElementById('combo-web-destino-input').value = valor;
+  } else {
+    webEntregaOrigemParoquia = valor;
+    document.getElementById('combo-web-origem-input').value = valor;
+    webEntregaDestinoParoquia = '';
+    document.getElementById('combo-web-destino-input').value = '';
+    atualizarSaldoDispWeb();
+  }
+  document.getElementById('combo-web-' + role + '-list').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#grupo-origem-paroquia') && !e.target.closest('#combo-web-destino-input') && !e.target.closest('.combo-list-web')) {
+    document.querySelectorAll('.combo-list-web').forEach(el => el.style.display = 'none');
+  }
+});
+
+function confirmarDestinacaoParoquiaWeb() {
+  const origem = origemAtualWeb();
+  const destino = webEntregaDestinoParoquia;
+  const qtd = parseInt(document.getElementById('pw-qtd').value);
+  const data = document.getElementById('pw-data').value;
+  const obs = document.getElementById('pw-obs').value.trim();
+
+  if (!origem) { toast('Selecione a paróquia que está enviando.', 'erro'); return; }
+  if (!destino) { toast('Selecione a paróquia de destino na busca.', 'erro'); return; }
+  if (destino === origem) { toast('A paróquia de destino não pode ser igual à de origem.', 'erro'); return; }
+  if (!qtd || qtd < 1) { toast('Informe a quantidade.', 'erro'); return; }
+  if (!data) { toast('Informe a data.', 'erro'); return; }
+
+  const saldoOrigem = getSaldoParoquia(origem) || 0;
+  if (qtd > saldoOrigem) { toast(`A paróquia de origem só tem ${saldoOrigem} cesta(s) em estoque.`, 'erro'); return; }
+
+  const dadosOrigem = { ...(estoques[origem] || {}), saldo: Math.max(0, saldoOrigem - qtd), ultimaAtualizacao: data };
+  const saldoDestino = (estoques[destino] && estoques[destino].saldo) || 0;
+  const dadosDestino = { ...(estoques[destino] || {}), saldo: saldoDestino + qtd, ultimaAtualizacao: data };
+
+  const registro = {
+    paroquiaOrigem: origem, paroquiaDestino: destino, quantidade: qtd, data, obs,
+    responsavel: usuarioAtual.nome || usuarioAtual.usuario,
+    criadoEm: new Date().toISOString()
+  };
+
+  function finalizar() {
+    toast('Cestas destinadas com sucesso!', 'ok');
+    webEntregaDestinoParoquia = '';
+    document.getElementById('pw-qtd').value = '';
+    document.getElementById('pw-obs').value = '';
+    document.getElementById('combo-web-destino-input').value = '';
+    atualizarSaldoDispWeb();
+  }
+
+  if (usandoFirebase && db) {
+    Promise.all([
+      db.collection('estoques').doc(origem).set(dadosOrigem),
+      db.collection('estoques').doc(destino).set(dadosDestino),
+      db.collection('compartilhamentos').add(registro)
+    ]).then(() => {
+      estoques[origem] = dadosOrigem;
+      estoques[destino] = dadosDestino;
+      finalizar();
+    }).catch(e => toast('Erro: ' + e.message, 'erro'));
+  } else {
+    estoques[origem] = dadosOrigem;
+    estoques[destino] = dadosDestino;
+    const lista = JSON.parse(localStorage.getItem('df_compartilhamentos') || '[]');
+    registro.id = 'c_' + Date.now();
+    lista.push(registro);
+    localStorage.setItem('df_compartilhamentos', JSON.stringify(lista));
+    salvarLocal();
+    finalizar();
+  }
+}
+
 // ---------- HISTÓRICO ----------
 function renderHistorico() {
   const mes = document.getElementById('filtro-mes-hist').value;
@@ -2186,6 +2351,13 @@ window.addEventListener('load', ()=>{
       }
     }
     aoSelecionarParoquia();
+  } else {
+    // Sem paróquia na URL: pré-preencher com a última paróquia usada neste aparelho
+    const ultimaParoquia = localStorage.getItem('df_ultima_paroquia');
+    if (ultimaParoquia) {
+      document.getElementById('login-paroquia').value = ultimaParoquia;
+      aoSelecionarParoquia();
+    }
   }
 
   // Re-renderizar ao girar o celular
