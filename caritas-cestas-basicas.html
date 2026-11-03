@@ -338,6 +338,7 @@
             <select id="login-paroquia" onchange="aoSelecionarParoquia()">
       <option value="">Selecione sua paróquia</option>
       <option value="__admin__">▸ Administração Diocese (Admin)</option>
+      <optgroup label="── Outras paróquias cadastradas ──" id="login-outras" style="display:none;"></optgroup>
 
       <optgroup label="── Forania Beata Rita Amada de Jesus ──">
         <option>Paróquia Nossa Senhora Aparecida (Pedregulho-SP)</option>
@@ -539,7 +540,7 @@
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Responsável</th><th>Observação</th></tr></thead>
+          <thead><tr><th>Data</th><th>Família</th><th>CPF</th><th>Responsável</th><th>Observação</th><th>Ação</th></tr></thead>
           <tbody id="tabela-historico"></tbody>
         </table>
       </div>
@@ -655,6 +656,15 @@
             </table>
           </div>
           <div id="historico-comp-cards-mobile"></div>
+        </div>
+        <div class="painel-secao">
+          <div class="painel-secao-titulo">↩️ Correções de baixa (lançadas por engano)</div>
+          <div class="tabela-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Paróquia</th><th>Baixa corrigida</th><th>Voltou ao estoque</th><th>Motivo</th><th>Corrigido por</th></tr></thead>
+              <tbody id="tabela-correcoes-estoque"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -799,21 +809,37 @@
         <span id="alerta-duplicata-detalhe" style="font-size:0.82rem;opacity:0.85;"></span>
       </div>
       <div class="form-grid">
-        <div class="form-grupo full"><label>Nome completo *</label><input type="text" id="f-nome" placeholder="Nome da família / responsável"></div>
-        <div class="form-grupo"><label>CPF *</label><input type="text" id="f-cpf" placeholder="000.000.000-00" oninput="formatarCPF(this)" maxlength="14"></div>
-        <div class="form-grupo"><label>NIS / CadÚnico</label><input type="text" id="f-nis" placeholder="Número NIS"></div>
+        <div class="form-grupo full"><label>Tipo de cadastro</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primario btn-sm" id="f-tipo-familia" onclick="setTipoCadastro('familia')">🏠 Família</button>
+            <button type="button" class="btn btn-secundario btn-sm" id="f-tipo-inst" onclick="setTipoCadastro('instituicao')">🏛️ Instituição</button>
+          </div>
+          <input type="hidden" id="f-tipo" value="familia">
+        </div>
+        <div class="form-grupo full" id="grupo-f-paroquia" style="display:none;"><label>Paróquia</label>
+          <select id="f-paroquia-sel" onchange="aoMudarParoquiaForm()"></select>
+          <input type="text" id="f-paroquia-nova" placeholder="Nome da nova paróquia (ex: Paróquia São José (Cidade-SP))" style="display:none;margin-top:6px;">
+        </div>
+        <div class="form-grupo full"><label id="lbl-f-nome">Nome completo *</label><input type="text" id="f-nome" placeholder="Nome da família / responsável"></div>
+        <div class="form-grupo full" id="grupo-f-inst" style="display:none;"><label>Tipo de instituição</label>
+          <select id="f-inst-tipo"><option>Asilo / Lar de idosos</option><option>Creche / Escola</option><option>Abrigo</option><option>Associação / ONG</option><option>Pastoral / Conferência Vicentina</option><option>Casa de recuperação</option><option>Outra</option></select>
+          <input type="text" id="f-inst-resp" placeholder="Nome do responsável pela instituição" style="margin-top:6px;">
+        </div>
+        <div class="form-grupo"><label id="lbl-f-cpf">CPF *</label><input type="text" id="f-cpf" placeholder="000.000.000-00" oninput="formatarDocumento(this)" maxlength="14"></div>
+        <div class="form-grupo" id="grupo-f-nis"><label>NIS / CadÚnico</label><input type="text" id="f-nis" placeholder="Número NIS"></div>
         <div class="form-grupo"><label>Telefone</label><input type="text" id="f-telefone" placeholder="(00) 00000-0000"></div>
-        <div class="form-grupo"><label>Nº pessoas na família *</label><input type="number" id="f-pessoas" min="1" value="1"></div>
+        <div class="form-grupo"><label id="lbl-f-pessoas">Nº pessoas na família *</label><input type="number" id="f-pessoas" min="1" value="1"></div>
         <div class="form-grupo full"><label>Rua / Logradouro *</label><input type="text" id="f-endereco" placeholder="Ex: Rua das Flores" oninput="verificarDuplicataEndereco()"></div>
         <div class="form-grupo"><label>Número *</label><input type="text" id="f-numero" placeholder="Ex: 123"></div>
         <div class="form-grupo"><label>Apartamento / Complemento</label><input type="text" id="f-apto" placeholder="Ex: Apto 42, Bloco B"></div>
         <div class="form-grupo"><label>Bairro</label><input type="text" id="f-bairro" placeholder="Bairro"></div>
         <div class="form-grupo" id="grupo-f-capela" style="display:none;"><label>Capela / Comunidade</label>
-          <select id="f-capela"></select>
+          <select id="f-capela" onchange="aoMudarCapelaForm()"></select>
+          <input type="text" id="f-capela-nova" placeholder="Nome da nova capela / comunidade" style="display:none;margin-top:6px;">
         </div>
         <div class="form-grupo"><label>Cidade</label><input type="text" id="f-cidade" placeholder="Cidade"></div>
-        <div class="form-grupo"><label>Renda familiar (R$)</label><input type="number" id="f-renda" placeholder="0" step="0.01" min="0"></div>
-        <div class="form-grupo"><label>Situação moradia</label>
+        <div class="form-grupo" id="grupo-f-renda"><label>Renda familiar (R$)</label><input type="number" id="f-renda" placeholder="0" step="0.01" min="0"></div>
+        <div class="form-grupo" id="grupo-f-moradia"><label>Situação moradia</label>
           <select id="f-moradia"><option value="">Selecione</option><option>Própria</option><option>Alugada</option><option>Cedida</option><option>Irregular</option></select>
         </div>
         <div class="form-grupo full"><label>Observações</label><input type="text" id="f-obs" placeholder="Informações relevantes"></div>
@@ -999,20 +1025,22 @@
 
 const CAPELAS_POR_PAROQUIA = {"Paróquia Santo Antônio (Aramina-SP)": ["Capela Nossa Senhora Aparecida", "Comunidade Brejão", "Comunidade dos Três Reis"], "Paróquia Nossa Senhora do Patrocínio (Buritizal-SP)": [], "Paróquia Santa Rita de Cássia (Igarapava-SP)": ["Capela Nossa Senhora da Abadia", "Capela Santa Cruz", "Capela Santo Antônio", "Capela São Geraldo", "Comunidade Nossa Senhora das Graças", "Comunidade Santo Ezequiel Moreno", "Comunidade Santo Frei Galvão", "Comunidade São Bento"], "Paróquia Nossa Senhora do Carmo (Ituverava-SP)": ["Capela Nossa Senhora Aparecida", "Capela Nossa Senhora do Rosário", "Capela São Benedito", "Capela São Pedro e São Paulo", "Comunidade Aparecida do Salto", "Comunidade Capivari da Mata"], "Paróquia São João Batista (Ituverava-SP)": ["Capela Imaculada Conceição", "Capela Sagrado Coração de Jesus"], "Paróquia São Sebastião (Jeriquara-SP)": [], "Paróquia Nossa Senhora do Patrocínio (Patrocínio Paulista-SP)": ["Capela Santa Cruz", "Capela São Sebastião", "Comunidade da Cachoeira", "Comunidade do Lambari", "Comunidade do Palmital"], "Paróquia Nossa Senhora Aparecida (Pedregulho-SP)": ["Capela Nossa Senhora das Graças", "Capela Sagrada Família", "Capela São Benedito", "Capela São Francisco de Assis", "Capela São Pedro", "Capela São Sebastião"], "Paróquia Santo Antônio (Rifaina-SP)": [], "Paróquia Nossa Senhora Aparecida (Itirapuã-SP)": ["Capela São Sebastião", "Lar São Francisco (Asilo)"], "Paróquia Nossa Senhora Aparecida - Capelinha (Franca-SP)": ["Capela Divino Pai Eterno", "Capela Nossa Senhora da Penha", "Capela Nossa Senhora das Dores", "Capela Santa Marta", "Capela São Francisco Xavier", "Capela São José", "Capela São Mateus", "Capela São Roque", "Capela Senhora de Fátima"], "Paróquia Nossa Senhora da Guia (Franca-SP)": [], "Paróquia Sagrada Família (Franca-SP)": ["Capela Nossa Senhora de Guadalupe", "Capela Santa Clara", "Capela Santa Maria dos Anjos"], "Paróquia Sagrado Coração de Jesus (Franca-SP)": ["Capela Divino Espírito Santo", "Capela São Francisco de Assis", "Capela São Geraldo Magela", "Capela São Lucas", "Capela São Paulo"], "Paróquia Sant'Ana (Franca-SP)": [], "Paróquia Santa Rita de Cássia (Franca-SP)": ["Capela Nossa Senhora de Lourdes", "Capela São José Operário"], "Paróquia São Francisco de Assis (Franca-SP)": ["Capela Sagrado Coração de Jesus"], "Paróquia São João Batista (Franca-SP)": ["Capela Nossa Senhora do Carmo", "Capela Santa Dorothea", "Capela São Cristóvão"], "Paróquia São Pedro (Franca-SP)": ["Capela Santa Teresinha do Menino Jesus", "Capela São João Paulo II"], "Paróquia Menino Jesus de Praga e Santa Ifigênia (Franca-SP)": ["Capela Divino Pai Eterno"], "Paróquia Nossa Senhora das Graças (Franca-SP)": [], "Paróquia Nossa Senhora Aparecida (Restinga-SP)": [], "Paróquia Santa Luzia (Franca-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Rafael"], "Paróquia São Sebastião (Franca-SP)": [], "Santuário Diocesano Santo Antônio (Franca-SP)": [], "Sé Catedral Nossa Senhora da Conceição (Franca-SP)": [], "Paróquia Nossa Senhora da Abadia (Cristais Paulista-SP)": ["Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Rita", "Capela São José"], "Paróquia Nossa Senhora Rosa Mística (Franca-SP)": ["Capela Santo Antônio de Santana Galvão (Frei Galvão)"], "Paróquia Santa Cruz (Ribeirão Corrente-SP)": ["Capela Nossa Senhora das Graças"], "Paróquia Santa Edwiges (Franca-SP)": ["Capela Santa Paulina", "Comunidade Jesus Misericordioso"], "Paróquia Santa Gianna (Franca-SP)": ["Capela Nossa Senhora Auxiliadora", "Capela Nossa Senhora de Fátima", "Capela Nossa Senhora do Carmo", "Capela Nossa Senhora do Rosário"], "Paróquia Santa Mônica (Franca-SP)": [], "Paróquia Santa Teresinha (Franca-SP)": ["Capela Santo Tomás de Aquino"], "Paróquia São Benedito (Franca-SP)": ["Capela Nossa Senhora do Sagrado Coração"], "Paróquia São Crispim (Franca-SP)": ["Capela São Miguel"], "Paróquia São Judas Tadeu (Franca-SP)": [], "Paróquia São Vicente de Paulo (Franca-SP)": ["Capela Santo Expedito"], "Paróquia Divino Espírito Santo (Nuporanga-SP)": ["Capela Nossa Senhora Aparecida"], "Paróquia Nossa Senhora Aparecida (São Joaquim da Barra-SP)": ["Capela São José", "Comunidade Santa Terezinha", "Comunidade São João Batista"], "Paróquia Nosso Senhor Jesus Cristo Rei do Universo (Orlândia-SP)": ["Comunidade Santa Zita e Santo Antônio", "Igreja Santa Rita"], "Paróquia Santa Rita de Cássia (Sales Oliveira-SP)": ["Capela São José"], "Paróquia São Joaquim (São Joaquim da Barra-SP)": ["Capela Santo Hilário (Rural)"], "Paróquia São José (Orlândia-SP)": ["Capela do Cemitério", "Capela do Hospital Beneficente Santo Antônio", "Capela Mãe Rainha", "Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Genoveva", "Capela São Francisco de Assis", "Capela São João Batista"], "Paróquia São José (São José da Bela Vista-SP)": ["Capela Nossa Senhora de Fátima"], "Paróquia São Sebastião e Santo Antônio (Guará-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Pedro", "Capela Senhor Bom Jesus da Lapa", "Centro Catequético Santa Rita"]};
 
-function getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia) {
+function getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia, permitirOutra) {
   const lista = CAPELAS_POR_PAROQUIA[paroquia] || [];
-  if (!lista.length) return null; // paróquia sem capelas cadastradas
+  if (!lista.length && !permitirOutra) return null; // paróquia sem capelas cadastradas
+  if (permitirOutra && !paroquia) return null;
   let opts = incluirVazia ? `<option value="">${labelVazia || '— Apenas matriz —'}</option>` : '';
   opts += lista.map(cap =>
     `<option${selectedValue === cap ? ' selected' : ''}>${cap}</option>`
   ).join('');
+  if (permitirOutra) opts += '<option value="__outra__">➕ Outra capela / comunidade (não listada)</option>';
   return opts;
 }
 
-function atualizarSelectCapela(paroquia, selectId, selectedValue, incluirVazia, labelVazia) {
+function atualizarSelectCapela(paroquia, selectId, selectedValue, incluirVazia, labelVazia, permitirOutra) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  const opts = getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia);
+  const opts = getCapelasSelect(paroquia, selectedValue, incluirVazia, labelVazia, permitirOutra);
   const grupo = sel.closest('.form-grupo');
   if (!opts) {
     if (grupo) grupo.style.display = 'none';
@@ -1193,6 +1221,7 @@ function sair() {
   usuarioAtual = null;
   localStorage.removeItem('df_sessao');
   familias = []; entregas = []; agentes = [];
+  if (correcoesUnsub) { correcoesUnsub(); correcoesUnsub = null; } correcoesEstoque = [];
   document.getElementById('tela-app').style.display = 'none';
   document.getElementById('tela-login').style.display = 'flex';
   document.getElementById('login-senha').value = '';
@@ -1323,7 +1352,7 @@ function renderFamilias() {
   // Tabela (desktop)
   tbody.innerHTML = lista.map(f => `
     <tr style="${f.inativo ? 'opacity:0.55;' : ''}">
-      <td><strong>${esc(f.nome)}</strong></td>
+      <td><strong>${esc(f.nome)}</strong>${f.tipo === 'instituicao' ? ' <span class="badge" style="background:#E8DAEF;color:#6C3483;font-size:0.7rem;">🏛️ Instituição</span>' : ''}</td>
       <td>${esc(f.cpf || '—')}</td>
       <td>${esc(f.bairro || '—')}</td>
       <td>${f.pessoas || 1}</td>
@@ -1340,7 +1369,7 @@ function renderFamilias() {
   // Cards (mobile)
   cards.innerHTML = lista.map(f => `
     <div class="familia-card" style="${f.inativo ? 'opacity:0.6;' : ''}">
-      <div class="familia-card-nome">${esc(f.nome)} <span class="badge ${f.inativo ? 'badge-inativo' : 'badge-ativo'}" style="font-size:0.7rem;">${f.inativo ? 'Inativa' : 'Ativa'}</span></div>
+      <div class="familia-card-nome">${esc(f.nome)}${f.tipo === 'instituicao' ? ' <span class="badge" style="background:#E8DAEF;color:#6C3483;font-size:0.7rem;">🏛️ Instituição</span>' : ''} <span class="badge ${f.inativo ? 'badge-inativo' : 'badge-ativo'}" style="font-size:0.7rem;">${f.inativo ? 'Inativa' : 'Ativa'}</span></div>
       <div class="familia-card-info">
         <span>📄 ${esc(f.cpf || 'Sem CPF')}</span>
         <span>📍 ${esc(f.bairro || 'Sem bairro')}</span>
@@ -1374,10 +1403,15 @@ function isResponsavel() { return usuarioAtual.nivel === 'responsavel'; }
 function isAgente() { return usuarioAtual.nivel === 'agente'; }
 // Excluir família: só admin
 function podeExcluir() { return isAdmin(); }
-// Inativar família: admin e responsável
-function podeInativar() { return isAdmin() || isResponsavel(); }
-// Reativar família: admin e responsável
-function podeReativar() { return isAdmin() || isResponsavel(); }
+// Inativar família: admin, responsável e agente (agente/responsável só na própria paróquia)
+function podeInativar() { return isAdmin() || isResponsavel() || isAgente(); }
+function podeInativarFamilia(f) {
+  if (isAdmin()) return true;
+  if (isResponsavel() || isAgente()) return !!f && f.paroquia === usuarioAtual.paroquia;
+  return false;
+}
+// Reativar família: mesma regra de inativar
+function podeReativar() { return isAdmin() || isResponsavel() || isAgente(); }
 // Editar família: admin, responsável e agente (só da própria paróquia)
 function podeEditarFamilia(f) {
   if (isAdmin()) return true;
@@ -1397,7 +1431,9 @@ function abrirModalFamilia() {
   document.getElementById('modal-familia-titulo').textContent = 'Nova Família';
   ['f-nome','f-cpf','f-nis','f-telefone','f-endereco','f-numero','f-apto','f-bairro','f-cidade','f-obs','f-foto-url'].forEach(id => document.getElementById(id).value = '');
   resetarFotoModal();
-  atualizarSelectCapela(usuarioAtual.paroquia, 'f-capela', '', true, '— Matriz —');
+  setTipoCadastro('familia');
+  document.getElementById('f-inst-resp').value = '';
+  prepararParoquiaCapela('', '');
   document.getElementById('f-pessoas').value = 1;
   document.getElementById('f-renda').value = '';
   document.getElementById('f-moradia').value = '';
@@ -1423,14 +1459,197 @@ function editarFamilia(id) {
   document.getElementById('f-renda').value = f.renda || '';
   document.getElementById('f-moradia').value = f.moradia || '';
   document.getElementById('f-obs').value = f.obs || '';
-  atualizarSelectCapela(usuarioAtual.paroquia, 'f-capela', f.capela || '', true, '— Matriz —');
+  setTipoCadastro(f.tipo || 'familia');
+  document.getElementById('f-inst-tipo').value = f.instituicaoTipo || 'Outra';
+  document.getElementById('f-inst-resp').value = f.responsavelInst || '';
+  prepararParoquiaCapela(f.paroquia || '', f.capela || '');
   carregarFotoModal(f.fotoUrl || '');
   document.getElementById('f-id').value = id;
   document.getElementById('alerta-duplicata').style.display = 'none';
   abrirModal('modal-familia');
 }
 
+// ---------- TIPO DE CADASTRO / PARÓQUIAS E CAPELAS EXTRAS ----------
+function normLocal(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
+
+let locaisExtras = [];
+let locaisUnsub = null;
+function aplicarLocaisExtras() {
+  let locais = locaisExtras.slice();
+  try { locais = locais.concat(JSON.parse(localStorage.getItem('df_locais_extras') || '[]')); } catch (e) {}
+  locais.forEach(l => {
+    if (!l || !l.nome) return;
+    if (l.tipo === 'paroquia') {
+      if (!LISTA_PAROQUIAS.some(p => normLocal(p) === normLocal(l.nome))) LISTA_PAROQUIAS.push(l.nome);
+      if (!CAPELAS_POR_PAROQUIA[l.nome]) CAPELAS_POR_PAROQUIA[l.nome] = [];
+    } else if (l.tipo === 'capela' && l.paroquia) {
+      if (!CAPELAS_POR_PAROQUIA[l.paroquia]) CAPELAS_POR_PAROQUIA[l.paroquia] = [];
+      const arr = CAPELAS_POR_PAROQUIA[l.paroquia];
+      if (!arr.some(c => normLocal(c) === normLocal(l.nome))) arr.push(l.nome);
+    }
+  });
+  // Paróquias extras aparecem na tela de login
+  const og = document.getElementById('login-outras');
+  if (og) {
+    const fixas = new Set(Array.from(document.querySelectorAll('#login-paroquia option')).filter(o => !og.contains(o)).map(o => o.value || o.text));
+    const extras = LISTA_PAROQUIAS.filter(p => !fixas.has(p));
+    const sel = document.getElementById('login-paroquia');
+    const atual = sel ? sel.value : '';
+    og.innerHTML = extras.map(p => `<option>${esc(p)}</option>`).join('');
+    og.style.display = extras.length ? '' : 'none';
+    if (sel && atual) sel.value = atual;
+  }
+}
+function carregarLocaisExtras() {
+  if (!usandoFirebase || !db || locaisUnsub) return;
+  locaisUnsub = db.collection('locais_extras').onSnapshot(snap => {
+    locaisExtras = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    aplicarLocaisExtras();
+  }, () => {});
+}
+// Cadastra paróquia/capela nova (ou reaproveita uma parecida já existente). Devolve o nome final.
+function registrarLocalExtra(tipo, nome, paroquia) {
+  nome = (nome || '').replace(/\s+/g, ' ').trim();
+  const existentes = tipo === 'paroquia' ? LISTA_PAROQUIAS : (CAPELAS_POR_PAROQUIA[paroquia] || []);
+  const exato = existentes.find(x => normLocal(x) === normLocal(nome));
+  if (exato) return Promise.resolve(exato);
+  const nn = normLocal(nome);
+  const parecida = nn.length >= 5 ? existentes.find(x => normLocal(x).includes(nn) || nn.includes(normLocal(x))) : null;
+  if (parecida && confirm('Já existe "' + parecida + '" na lista.\n\nUsar essa em vez de cadastrar "' + nome + '"?')) return Promise.resolve(parecida);
+  const reg = { tipo, nome, paroquia: paroquia || '', criadoPor: usuarioAtual.nome || usuarioAtual.usuario, criadoEm: new Date().toISOString() };
+  const fim = () => { locaisExtras.push(reg); aplicarLocaisExtras(); return nome; };
+  if (usandoFirebase && db) return db.collection('locais_extras').add(reg).then(fim);
+  try {
+    const l = JSON.parse(localStorage.getItem('df_locais_extras') || '[]'); l.push(reg);
+    localStorage.setItem('df_locais_extras', JSON.stringify(l));
+  } catch (e) {}
+  return Promise.resolve(fim());
+}
+
+function setTipoCadastro(t) {
+  const inst = t === 'instituicao';
+  document.getElementById('f-tipo').value = t;
+  document.getElementById('f-tipo-familia').className = 'btn btn-sm ' + (inst ? 'btn-secundario' : 'btn-primario');
+  document.getElementById('f-tipo-inst').className = 'btn btn-sm ' + (inst ? 'btn-primario' : 'btn-secundario');
+  document.getElementById('lbl-f-nome').textContent = inst ? 'Nome da instituição *' : 'Nome completo *';
+  document.getElementById('f-nome').placeholder = inst ? 'Ex: Lar São Vicente, Creche Santa Rita' : 'Nome da família / responsável';
+  document.getElementById('lbl-f-cpf').textContent = inst ? 'CNPJ (opcional)' : 'CPF *';
+  const cpf = document.getElementById('f-cpf');
+  cpf.placeholder = inst ? '00.000.000/0000-00' : '000.000.000-00';
+  cpf.maxLength = inst ? 18 : 14;
+  document.getElementById('lbl-f-pessoas').textContent = inst ? 'Nº de pessoas atendidas *' : 'Nº pessoas na família *';
+  document.getElementById('grupo-f-inst').style.display = inst ? '' : 'none';
+  ['grupo-f-nis', 'grupo-f-renda', 'grupo-f-moradia'].forEach(id => { document.getElementById(id).style.display = inst ? 'none' : ''; });
+  if (cpf.value) formatarDocumento(cpf);
+}
+function formatarDocumento(el) {
+  if (document.getElementById('f-tipo').value !== 'instituicao') { formatarCPF(el); return; }
+  let v = el.value.replace(/\D/g, '').slice(0, 14);
+  v = v.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+  el.value = v;
+}
+
+function prepararParoquiaCapela(par, cap) {
+  const admin = usuarioAtual.paroquia === '__admin__';
+  const g = document.getElementById('grupo-f-paroquia');
+  const nova = document.getElementById('f-paroquia-nova');
+  nova.style.display = 'none'; nova.value = '';
+  if (admin) {
+    const lista = LISTA_PAROQUIAS.slice().sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const atual = (par && par !== 'Diocese') ? par : '';
+    document.getElementById('f-paroquia-sel').innerHTML =
+      '<option value="">— Diocese (sem paróquia) —</option>' +
+      lista.map(p => `<option${p === atual ? ' selected' : ''}>${esc(p)}</option>`).join('') +
+      '<option value="__outra__">➕ Outra paróquia (não listada)</option>';
+    g.style.display = '';
+  } else {
+    g.style.display = 'none';
+  }
+  const parAtual = admin ? ((par && par !== 'Diocese') ? par : '') : usuarioAtual.paroquia;
+  atualizarSelectCapela(parAtual, 'f-capela', cap || '', true, '— Matriz —', true);
+  document.getElementById('f-capela-nova').style.display = 'none';
+  document.getElementById('f-capela-nova').value = '';
+}
+function aoMudarParoquiaForm() {
+  const v = document.getElementById('f-paroquia-sel').value;
+  const nova = document.getElementById('f-paroquia-nova');
+  nova.style.display = v === '__outra__' ? '' : 'none';
+  atualizarSelectCapela(v === '__outra__' ? '__nova__' : v, 'f-capela', '', true, '— Matriz —', true);
+  document.getElementById('f-capela-nova').style.display = 'none';
+}
+function aoMudarCapelaForm() {
+  document.getElementById('f-capela-nova').style.display = document.getElementById('f-capela').value === '__outra__' ? '' : 'none';
+}
+
+let _famRes = null;
+function famParoquiaFinal() {
+  if (_famRes) return _famRes.paroquia;
+  return usuarioAtual.paroquia === '__admin__' ? 'Diocese' : usuarioAtual.paroquia;
+}
+function famCapelaFinal() {
+  if (_famRes) return _famRes.capela;
+  const v = document.getElementById('f-capela').value || '';
+  return v === '__outra__' ? '' : v;
+}
+
+// Resolve paróquia/capela novas (cadastrando-as) e só então salva
 function salvarFamilia() {
+  const admin = usuarioAtual.paroquia === '__admin__';
+  let par = usuarioAtual.paroquia;
+  let novaPar = '';
+  if (admin) {
+    const v = document.getElementById('f-paroquia-sel').value;
+    if (v === '__outra__') {
+      novaPar = (document.getElementById('f-paroquia-nova').value || '').trim();
+      if (!novaPar) { toast('Digite o nome da nova paróquia.', 'erro'); return; }
+      par = '';
+    } else par = v;
+  }
+  const capSel = document.getElementById('f-capela').value || '';
+  const novaCap = capSel === '__outra__' ? (document.getElementById('f-capela-nova').value || '').trim() : '';
+  if (capSel === '__outra__' && !novaCap) { toast('Digite o nome da nova capela / comunidade.', 'erro'); return; }
+  if (capSel === '__outra__' && !par && !novaPar) { toast('Escolha a paróquia antes de cadastrar uma nova capela.', 'erro'); return; }
+  if (!novaPar && !novaCap) { _famRes = null; salvarFamiliaCore(); return; }
+
+  (novaPar ? registrarLocalExtra('paroquia', novaPar) : Promise.resolve(par))
+    .then(parFinal => {
+      const capP = novaCap ? registrarLocalExtra('capela', novaCap, parFinal) : Promise.resolve(capSel);
+      return capP.then(capFinal => ({ parFinal, capFinal }));
+    })
+    .then(({ parFinal, capFinal }) => {
+      _famRes = { paroquia: admin ? (parFinal || 'Diocese') : usuarioAtual.paroquia, capela: capFinal };
+      salvarFamiliaCore();
+      _famRes = null;
+    })
+    .catch(e => toast('Erro ao cadastrar paróquia/capela: ' + e.message, 'erro'));
+}
+
+function salvarInstituicaoCadastro(dados, id, docNorm) {
+  const msgOk = id ? 'Instituição atualizada!' : 'Instituição cadastrada!';
+  if (usandoFirebase && db) {
+    const checar = dados.cpf ? db.collection('familias').where('cpf', '==', dados.cpf).get() : Promise.resolve({ docs: [] });
+    checar.then(snap => {
+      const dup = snap.docs.find(d => d.id !== id && !d.data().inativo);
+      if (dup) { toast('Já existe um cadastro ativo com este CNPJ: ' + dup.data().nome, 'erro'); return; }
+      const op = id ? db.collection('familias').doc(id).update(dados) : db.collection('familias').add(dados);
+      return op.then(() => { fecharModal('modal-familia'); toast(msgOk, 'ok'); });
+    }).catch(e => toast('Erro ao salvar: ' + e.message, 'erro'));
+  } else {
+    const dup = dados.cpf && familias.find(f => f.id !== id && !f.inativo && (f.cpf || '').replace(/\D/g, '') === docNorm);
+    if (dup) { toast('Já existe um cadastro ativo com este CNPJ: ' + dup.nome, 'erro'); return; }
+    if (id) {
+      const idx = familias.findIndex(f => f.id === id);
+      if (idx >= 0) familias[idx] = { ...familias[idx], ...dados };
+    } else {
+      dados.id = 'f_' + Date.now();
+      familias.push(dados);
+    }
+    salvarLocal(); renderFamilias(); fecharModal('modal-familia'); toast(msgOk, 'ok');
+  }
+}
+
+function salvarFamiliaCore() {
+  const tipo = document.getElementById('f-tipo').value || 'familia';
   const nome = document.getElementById('f-nome').value.trim();
   const cpf = document.getElementById('f-cpf').value.trim();
   const pessoas = parseInt(document.getElementById('f-pessoas').value) || 1;
@@ -1440,8 +1659,8 @@ function salvarFamilia() {
   const endereco = endRua + (endNumero ? ', ' + endNumero : '') + (endApto ? ' — ' + endApto : '');
   const id = document.getElementById('f-id').value;
 
-  if (!nome) { toast('Informe o nome da família.', 'erro'); return; }
-  if (!cpf) { toast('Informe o CPF.', 'erro'); return; }
+  if (!nome) { toast(tipo === 'instituicao' ? 'Informe o nome da instituição.' : 'Informe o nome da família.', 'erro'); return; }
+  if (!cpf && tipo !== 'instituicao') { toast('Informe o CPF.', 'erro'); return; }
   if (!endRua) { toast('Informe a rua/logradouro.', 'erro'); return; }
   if (!endNumero) { toast('Informe o número.', 'erro'); return; }
 
@@ -1458,12 +1677,18 @@ function salvarFamilia() {
     renda: parseFloat(document.getElementById('f-renda').value) || 0,
     moradia: document.getElementById('f-moradia').value,
     obs: document.getElementById('f-obs').value.trim(),
-    capela: document.getElementById('f-capela').value || '',
+    capela: famCapelaFinal(),
     fotoUrl: document.getElementById('f-foto-url').value || '',
-    paroquia: usuarioAtual.paroquia === '__admin__' ? 'Diocese' : usuarioAtual.paroquia,
+    paroquia: famParoquiaFinal(),
+    tipo,
+    instituicaoTipo: tipo === 'instituicao' ? document.getElementById('f-inst-tipo').value : '',
+    responsavelInst: tipo === 'instituicao' ? document.getElementById('f-inst-resp').value.trim() : '',
     inativo: false,
     criadoEm: id ? (familias.find(f=>f.id===id)||{}).criadoEm : new Date().toISOString()
   };
+
+  // Instituições: sem checagem de endereço/vizinhança (só CNPJ duplicado)
+  if (tipo === 'instituicao') { salvarInstituicaoCadastro(dados, id, cpfNorm); return; }
 
   if (usandoFirebase && db) {
     // ── Consultar Firebase globalmente para garantir unicidade ─────────────
@@ -1479,7 +1704,7 @@ function salvarFamilia() {
         const fDup = { id: dupCPF.id, ...dupCPF.data() };
         db.collection('entregas').where('familiaId', '==', dupCPF.id).get()
           .then(snapEnt => {
-            mostrarBloqueioFirebase('cpf', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })));
+            mostrarBloqueioFirebase('cpf', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => !x.estornada));
           });
         return;
       }
@@ -1493,7 +1718,7 @@ function salvarFamilia() {
         const fDup = { id: dupEnd.id, ...dupEnd.data() };
         db.collection('entregas').where('familiaId', '==', dupEnd.id).get()
           .then(snapEnt => {
-            mostrarBloqueioFirebase('endereco', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })));
+            mostrarBloqueioFirebase('endereco', fDup, snapEnt.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => !x.estornada));
           });
         return;
       }
@@ -1620,7 +1845,8 @@ function verFamilia(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
       ${f.fotoUrl ? `<div style="grid-column:1/-1;display:flex;justify-content:center;margin-bottom:8px;"><img src="${f.fotoUrl}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--vermelho);" alt="Foto"></div>` : ''}
       <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Nome</div><strong>${esc(f.nome)}</strong></div>
-      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">CPF</div>${esc(f.cpf||'—')}</div>
+      <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">${f.tipo === 'instituicao' ? 'CNPJ' : 'CPF'}</div>${esc(f.cpf||'—')}</div>
+      ${f.tipo === 'instituicao' ? `<div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Tipo / Responsável</div>${esc(f.instituicaoTipo||'—')}${f.responsavelInst ? ' · ' + esc(f.responsavelInst) : ''}</div>` : ''}
       <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">NIS/CadÚnico</div>${esc(f.nis||'—')}</div>
       <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Telefone</div>${esc(f.telefone||'—')}</div>
       <div><div style="font-size:0.75rem;color:var(--cinza-texto);margin-bottom:2px;">Pessoas</div>${f.pessoas||1}</div>
@@ -1649,6 +1875,7 @@ function verFamilia(id) {
 function toggleInativar(id) {
   const f = familias.find(x => x.id === id);
   if (!f) return;
+  if (!podeInativarFamilia(f)) { toast('Sem permissão para alterar famílias de outra paróquia.', 'erro'); return; }
   const acao = f.inativo ? 'reativar' : 'inativar';
   document.getElementById('modal-confirmar-titulo').textContent = f.inativo ? 'Reativar Família' : 'Inativar Família';
   document.getElementById('modal-confirmar-msg').textContent = `Deseja ${acao} a família "${f.nome}"? ${f.inativo ? 'Ela voltará a aparecer na lista.' : 'Ela ficará oculta da lista, mas o histórico será preservado.'}`;
@@ -1659,6 +1886,7 @@ function toggleInativar(id) {
 function confirmarToggleInativar(id) {
   const f = familias.find(x => x.id === id);
   if (!f) return;
+  if (!podeInativarFamilia(f)) { toast('Sem permissão para alterar famílias de outra paróquia.', 'erro'); return; }
   const novoStatus = !f.inativo;
 
   if (usandoFirebase && db) {
@@ -1716,11 +1944,11 @@ function buscarFamiliaEntrega() {
     return;
   }
   resultado.innerHTML = lista.map(f => {
-    const jaDeu = entregas.some(e => e.familiaId === f.id && e.data && e.data.startsWith(new Date().toISOString().slice(0,7)));
+    const jaDeu = entregas.some(e => e.familiaId === f.id && !e.estornada && e.data && e.data.startsWith(new Date().toISOString().slice(0,7)));
     return `
     <div style="background:var(--cinza-claro);border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
       <div>
-        <strong>${esc(f.nome)}</strong> <span style="color:var(--cinza-texto);font-size:0.82rem;">CPF: ${esc(f.cpf||'—')}</span><br>
+        <strong>${esc(f.nome)}</strong>${f.tipo === 'instituicao' ? ' <span class="badge" style="background:#E8DAEF;color:#6C3483;font-size:0.7rem;">🏛️ Instituição</span>' : ''} <span style="color:var(--cinza-texto);font-size:0.82rem;">${f.tipo === 'instituicao' ? 'CNPJ' : 'CPF'}: ${esc(f.cpf||'—')}</span><br>
         <span style="font-size:0.82rem;color:var(--cinza-texto);">${esc(f.bairro||'')}${f.bairro&&f.cidade?', ':''}${esc(f.cidade||'')} · ${f.pessoas||1} pessoas</span>
         ${jaDeu ? '<br><span style="font-size:0.78rem;color:var(--amarelo);font-weight:600;">⚠️ Já recebeu cesta este mês</span>' : ''}
       </div>
@@ -1734,9 +1962,43 @@ function registrarEntregaRapida(familiaId) {
   if (!f) return;
   fecharModal('modal-ver-familia');
 
-  const obs = prompt(`Registrar entrega para: ${f.nome}\n\nObservação (opcional):`);
-  if (obs === null) return;
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const jaDeu = entregas.some(e => e.familiaId === f.id && !e.estornada && e.data && e.data.startsWith(mesAtual));
+  const saldo = getSaldoParoquia(f.paroquia);
+  const saldoTxt = saldo !== null
+    ? `${saldo} → <strong>${Math.max(0, saldo - 1)}</strong> cesta(s)`
+    : 'estoque ainda não lançado (nada será descontado)';
+  const linha = (rot, val) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--cinza-claro);"><span style="min-width:110px;color:var(--cinza-texto);font-size:0.8rem;">${rot}</span><span style="flex:1;font-size:0.88rem;">${val}</span></div>`;
 
+  const html = `<div style="margin-bottom:6px;font-size:0.82rem;color:var(--cinza-texto);">Confira as informações antes de registrar:</div>
+    ${linha(f.tipo === 'instituicao' ? 'Instituição' : 'Família', '<strong>' + esc(f.nome) + '</strong>')}
+    ${linha(f.tipo === 'instituicao' ? 'CNPJ' : 'CPF', esc(f.cpf || '—'))}
+    ${linha('Endereço', esc(f.endereco || '—') + (f.bairro ? ', ' + esc(f.bairro) : '') + (f.cidade ? ' — ' + esc(f.cidade) : ''))}
+    ${linha(f.tipo === 'instituicao' ? 'Pessoas atendidas' : 'Pessoas', f.pessoas || 1)}
+    ${linha('Paróquia', esc(f.paroquia || '—'))}
+    ${linha('Data', formatarData(new Date().toISOString().slice(0,10)))}
+    ${linha('Registrado por', esc(usuarioAtual.nome || usuarioAtual.usuario))}
+    ${linha('Estoque', saldoTxt)}
+    ${jaDeu ? '<div style="margin-top:10px;padding:9px 11px;background:#FEF5E7;border-left:4px solid var(--amarelo);border-radius:6px;font-size:0.82rem;"><strong>⚠️ Esta família já recebeu uma cesta neste mês.</strong> Só confirme se tiver certeza.</div>' : ''}
+    <div style="margin-top:12px;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Observação (opcional)</label>
+    <input type="text" id="conf-entrega-obs" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;"></div>`;
+
+  abrirConfirmar({
+    titulo: '📦 Confirmar entrega de cesta',
+    html,
+    btnTexto: 'Confirmar entrega',
+    btnClasse: 'btn-primario',
+    onConfirm: () => {
+      const obs = (document.getElementById('conf-entrega-obs') || {}).value || '';
+      fecharModal('modal-confirmar');
+      salvarEntregaConfirmada(familiaId, obs.trim());
+    }
+  });
+}
+
+function salvarEntregaConfirmada(familiaId, obs) {
+  const f = familias.find(x => x.id === familiaId);
+  if (!f) return;
   const entrega = {
     familiaId,
     familiaNome: f.nome,
@@ -1744,7 +2006,7 @@ function registrarEntregaRapida(familiaId) {
     paroquia: f.paroquia,
     data: new Date().toISOString().slice(0,10),
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
-    obs: obs.trim()
+    obs
   };
 
   if (usandoFirebase && db) {
@@ -1847,6 +2109,27 @@ function confirmarDestinacaoParoquiaWeb() {
   const saldoOrigem = getSaldoParoquia(origem) || 0;
   if (qtd > saldoOrigem) { toast(`A paróquia de origem só tem ${saldoOrigem} cesta(s) em estoque.`, 'erro'); return; }
 
+  const saldoDest = getSaldoParoquia(destino) || 0;
+  const linha = (rot, val) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--cinza-claro);"><span style="min-width:110px;color:var(--cinza-texto);font-size:0.8rem;">${rot}</span><span style="flex:1;font-size:0.88rem;">${val}</span></div>`;
+  abrirConfirmar({
+    titulo: '⛪ Confirmar destinação de cestas',
+    html: `<div style="margin-bottom:6px;font-size:0.82rem;color:var(--cinza-texto);">Confira as informações antes de confirmar:</div>
+      ${linha('Envia', '<strong>' + esc(origem) + '</strong>')}
+      ${linha('Recebe', '<strong>' + esc(destino) + '</strong>')}
+      ${linha('Quantidade', '<strong>' + qtd + '</strong> cesta(s)')}
+      ${linha('Data', formatarData(data))}
+      ${linha('Observação', esc(obs || '—'))}
+      ${linha('Estoque origem', saldoOrigem + ' → <strong>' + (saldoOrigem - qtd) + '</strong>')}
+      ${linha('Estoque destino', saldoDest + ' → <strong>' + (saldoDest + qtd) + '</strong>')}
+      ${linha('Registrado por', esc(usuarioAtual.nome || usuarioAtual.usuario))}`,
+    btnTexto: 'Confirmar destinação',
+    btnClasse: 'btn-primario',
+    onConfirm: () => { fecharModal('modal-confirmar'); executarDestinacaoParoquiaWeb(origem, destino, qtd, data, obs); }
+  });
+}
+
+function executarDestinacaoParoquiaWeb(origem, destino, qtd, data, obs) {
+  const saldoOrigem = getSaldoParoquia(origem) || 0;
   const dadosOrigem = { ...(estoques[origem] || {}), saldo: Math.max(0, saldoOrigem - qtd), ultimaAtualizacao: data };
   const saldoDestino = (estoques[destino] && estoques[destino].saldo) || 0;
   const dadosDestino = { ...(estoques[destino] || {}), saldo: saldoDestino + qtd, ultimaAtualizacao: data };
@@ -1898,17 +2181,126 @@ function renderHistorico() {
   lista = lista.sort((a,b) => b.data.localeCompare(a.data));
   const tbody = document.getElementById('tabela-historico');
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="vazio"><div class="vazio-icone">📋</div><p>Nenhuma entrega encontrada.</p></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = lista.map(e => `
+  tbody.innerHTML = lista.map(e => {
+    const est = !!e.estornada;
+    const st = est ? 'text-decoration:line-through;color:var(--cinza-texto);' : '';
+    const acao = est
+      ? `<span class="badge" style="background:#FEF5E7;color:#9A6700;">↩️ Estornada</span><div style="font-size:0.74rem;color:var(--cinza-texto);margin-top:4px;max-width:240px;">Baixa lançada por engano — cesta devolvida ao estoque.<br>Motivo: ${esc(e.estornoMotivo||'—')}<br>Por ${esc(e.estornoPor||'—')}${e.estornoEm ? ' em ' + formatarData(e.estornoEm.substring(0,10)) : ''}</div>`
+      : (podeCorrigirEntrega(e) ? `<button class="btn btn-secundario btn-sm" onclick="abrirEstornoEntrega('${e.id}')">↩️ Corrigir</button>` : '—');
+    return `
     <tr>
-      <td><strong class="historico-data">${formatarData(e.data)}</strong></td>
-      <td>${esc(e.familiaNome||'—')}</td>
-      <td>${esc(e.familiaCpf||'—')}</td>
-      <td>${esc(e.responsavel||'—')}</td>
-      <td>${esc(e.obs||'—')}</td>
-    </tr>`).join('');
+      <td><strong class="historico-data" style="${st}">${formatarData(e.data)}</strong></td>
+      <td style="${st}">${esc(e.familiaNome||'—')}</td>
+      <td style="${st}">${esc(e.familiaCpf||'—')}</td>
+      <td style="${st}">${esc(e.responsavel||'—')}</td>
+      <td style="${st}">${esc(e.obs||'—')}</td>
+      <td>${acao}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- CORREÇÃO DE BAIXA (ESTORNO) ----------
+function podeCorrigirEntrega(e) {
+  if (isAdmin()) return true;
+  return (isResponsavel() || isAgente()) && e.paroquia === usuarioAtual.paroquia;
+}
+
+function abrirEstornoEntrega(id) {
+  const e = entregas.find(x => x.id === id);
+  if (!e || e.estornada) return;
+  if (!podeCorrigirEntrega(e)) { toast('Sem permissão para corrigir entregas de outra paróquia.', 'erro'); return; }
+  const saldo = getSaldoParoquia(e.paroquia);
+  abrirConfirmar({
+    titulo: '↩️ Corrigir baixa lançada por engano',
+    html: `A entrega abaixo será <strong>estornada</strong>: ela continua no histórico, marcada como baixa errada, e <strong>1 cesta volta ao estoque</strong> da paróquia.<br><br>
+      <div style="background:var(--cinza-claro);border-radius:8px;padding:10px 12px;font-size:0.86rem;">
+        <strong>${esc(e.familiaNome||'—')}</strong> · CPF ${esc(e.familiaCpf||'—')}<br>
+        ${formatarData(e.data)} · ${esc(e.paroquia||'—')}<br>
+        Estoque: ${saldo !== null ? saldo + ' → <strong>' + (saldo + 1) + '</strong>' : 'não lançado (nada a devolver)'}
+      </div>
+      ${htmlMotivoCorrecao()}`,
+    btnTexto: 'Estornar e devolver ao estoque',
+    btnClasse: 'btn-perigo',
+    onConfirm: () => {
+      const motivo = lerMotivoCorrecao();
+      if (!motivo) return;
+      fecharModal('modal-confirmar');
+      executarEstornoEntrega(id, motivo);
+    }
+  });
+}
+
+function executarEstornoEntrega(id, motivo) {
+  const ent = entregas.find(x => x.id === id);
+  if (!ent || ent.estornada) return;
+  if (!podeCorrigirEntrega(ent)) { toast('Sem permissão.', 'erro'); return; }
+  const agora = new Date().toISOString();
+  const por = usuarioAtual.nome || usuarioAtual.usuario;
+  const par = ent.paroquia;
+  const e = estoques[par];
+  const descricao = 'Cesta entregue a ' + (ent.familiaNome || '—') + ' em ' + formatarData(ent.data);
+  const texto = 'Baixa lançada por engano — cesta devolvida ao estoque';
+  const camposEntrega = { estornada: true, estornoMotivo: motivo, estornoPor: por, estornoEm: agora };
+  const log = { origem: 'entrega', paroquia: par, quantidade: 1, unidade: 'cesta(s)', descricao, motivo, por, em: agora, texto, refId: id };
+  let dadosEst = null;
+  if (e && e.saldo != null) {
+    dadosEst = { ...e, saldo: e.saldo + 1, ultimaAtualizacao: agora.slice(0,10),
+      totalCorrecoes: (e.totalCorrecoes || 0) + 1,
+      ultimaCorrecao: { quantidade: 1, motivo, por, em: agora, descricao, texto } };
+  }
+  const msgOk = dadosEst ? 'Baixa corrigida: 1 cesta devolvida ao estoque.' : 'Entrega estornada (estoque não estava lançado).';
+
+  if (usandoFirebase && db) {
+    const ops = [
+      db.collection('entregas').doc(id).update(camposEntrega),
+      db.collection('correcoes_estoque').add(log)
+    ];
+    if (dadosEst) ops.push(db.collection('estoques').doc(par).set(dadosEst));
+    Promise.all(ops).then(() => { if (dadosEst) estoques[par] = dadosEst; renderEstoque(); toast(msgOk, 'ok'); })
+      .catch(err => toast('Erro: ' + err.message, 'erro'));
+  } else {
+    Object.assign(ent, camposEntrega);
+    if (dadosEst) estoques[par] = dadosEst;
+    correcoesEstoque.push({ id: 'c_' + Date.now(), ...log });
+    salvarLocal();
+    renderHistorico();
+    renderEstoque();
+    toast(msgOk, 'ok');
+  }
+}
+
+// Lista de correções (aba Estoque → cestas)
+let correcoesEstoque = [];
+let correcoesUnsub = null;
+function carregarCorrecoesFirebase() {
+  if (!usandoFirebase || !db || correcoesUnsub) return;
+  const q = usuarioAtual.nivel === 'admin'
+    ? db.collection('correcoes_estoque')
+    : db.collection('correcoes_estoque').where('paroquia', '==', usuarioAtual.paroquia);
+  correcoesUnsub = q.onSnapshot(snap => {
+    correcoesEstoque = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCorrecoesEstoque();
+  }, () => {});
+}
+function renderCorrecoesEstoque() {
+  const tb = document.getElementById('tabela-correcoes-estoque');
+  if (!tb) return;
+  const lista = correcoesEstoque.slice().sort((a, b) => (b.em || '').localeCompare(a.em || '')).slice(0, 30);
+  if (!lista.length) {
+    tb.innerHTML = '<tr><td colspan="6"><div class="vazio" style="padding:18px;"><p>Nenhuma correção de baixa registrada.</p></div></td></tr>';
+    return;
+  }
+  tb.innerHTML = lista.map(c => `<tr>
+    <td style="font-size:0.82rem;">${formatarData((c.em || '').substring(0,10))}</td>
+    <td>${esc((c.paroquia || '').replace('Paróquia ','').split('(')[0].trim())}</td>
+    <td>${esc(c.descricao || '—')}</td>
+    <td><strong>+${c.quantidade || 0}</strong> ${esc(c.unidade || '')}<div style="font-size:0.74rem;color:#9A6700;">${esc(c.texto || 'Baixa lançada por engano')}</div></td>
+    <td>${esc(c.motivo || '—')}</td>
+    <td>${esc(c.por || '—')}</td>
+  </tr>`).join('');
 }
 
 // ---------- AGENTES ----------
@@ -2136,7 +2528,7 @@ function renderPainel() {
 
   const totalFamilias = familias.filter(f=>!f.inativo).length;
   const totalInativas = familias.filter(f=>f.inativo).length;
-  const entregasMes = entregas.filter(e=>mes&&e.data&&e.data.startsWith(mes));
+  const entregasMes = entregas.filter(e=>!e.estornada&&mes&&e.data&&e.data.startsWith(mes));
   const pessoasMes = entregasMes.reduce((s,e)=>{
     const f = familias.find(x=>x.id===e.familiaId);
     return s + (f?f.pessoas||1:1);
@@ -2170,7 +2562,7 @@ function renderPainel() {
   }).join('') || `<tr><td colspan="5"><div class="vazio" style="padding:20px;"><p>Nenhuma família cadastrada.</p></div></td></tr>`;
 
   const contagem = {};
-  entregas.forEach(e=>{ contagem[e.familiaId]=(contagem[e.familiaId]||0)+1; });
+  entregas.filter(e=>!e.estornada).forEach(e=>{ contagem[e.familiaId]=(contagem[e.familiaId]||0)+1; });
   const top = Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,10);
   document.getElementById('tabela-top-familias').innerHTML = top.map(([fid,qtd],i)=>{
     const f = familias.find(x=>x.id===fid);
@@ -2201,7 +2593,7 @@ function buscaGlobal() {
 function exportarCSV() {
   const mes = document.getElementById('painel-mes').value;
   const linhas = [['Paróquia','Família','CPF','Pessoas','Data Entrega','Responsável','Observação']];
-  const lista = mes ? entregas.filter(e=>e.data&&e.data.startsWith(mes)) : entregas;
+  const lista = (mes ? entregas.filter(e=>e.data&&e.data.startsWith(mes)) : entregas).filter(e=>!e.estornada);
   lista.forEach(e=>{
     const f = familias.find(x=>x.id===e.familiaId);
     linhas.push([f?f.paroquia||'':'', f?f.nome||'':'', f?f.cpf||'':'', f?f.pessoas||1:1, e.data||'', e.responsavel||'', e.obs||'']);
@@ -2254,6 +2646,7 @@ function inicializarFirebase(config) {
     db.collection('_ping').limit(1).get()
       .then(()=>{
         usandoFirebase = true;
+        carregarLocaisExtras();
         const status = document.getElementById('status-firebase');
         status.className='aviso aviso-ok'; status.textContent='✅ Conectado ao Firebase — ' + config.projectId;
         toast('Firebase conectado!','ok');
@@ -2279,7 +2672,48 @@ function usarLocalStorage() {
 
 // ---------- UTILITÁRIOS ----------
 function abrirModal(id) { document.getElementById(id).classList.add('aberto'); }
-function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('aberto');
+  if (id === 'modal-confirmar') {
+    const b = document.getElementById('modal-confirmar-btn');
+    if (b) { b.textContent = 'Confirmar'; b.className = 'btn btn-perigo'; b.style.display = ''; }
+  }
+}
+
+// Abre o modal de confirmação genérico já com título, conteúdo e botão configurados
+function abrirConfirmar(opts) {
+  document.getElementById('modal-confirmar-titulo').textContent = opts.titulo || 'Confirmar';
+  document.getElementById('modal-confirmar-msg').innerHTML = opts.html || '';
+  const b = document.getElementById('modal-confirmar-btn');
+  b.textContent = opts.btnTexto || 'Confirmar';
+  b.className = 'btn ' + (opts.btnClasse || 'btn-primario');
+  b.style.display = opts.semBotao ? 'none' : '';
+  b.onclick = opts.onConfirm || null;
+  abrirModal('modal-confirmar');
+}
+
+// Bloco de motivo obrigatório usado nas correções de baixa
+function htmlMotivoCorrecao() {
+  return `<div style="margin-top:14px;">
+    <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">O que aconteceu? *</label>
+    <select id="corr-motivo-tipo" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;margin-bottom:8px;">
+      <option value="">— Selecione —</option>
+      <option>Lançada para a família errada</option>
+      <option>Lançada em duplicidade</option>
+      <option>Quantidade lançada errada</option>
+      <option>Item/cesta não foi entregue</option>
+      <option value="Outro">Outro motivo</option>
+    </select>
+    <textarea id="corr-motivo-detalhe" rows="2" placeholder="Detalhe (obrigatório se escolher 'Outro')" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;font-family:inherit;"></textarea>
+  </div>`;
+}
+function lerMotivoCorrecao() {
+  const tipo = (document.getElementById('corr-motivo-tipo') || {}).value || '';
+  const det = ((document.getElementById('corr-motivo-detalhe') || {}).value || '').trim();
+  if (!tipo) { toast('Selecione o que aconteceu.', 'erro'); return null; }
+  if (tipo === 'Outro' && !det) { toast('Descreva o motivo da correção.', 'erro'); return null; }
+  return (tipo === 'Outro' ? '' : tipo) + (tipo !== 'Outro' && det ? ' — ' : '') + det;
+}
 
 function toast(msg, tipo) {
   const t = document.getElementById('toast');
@@ -2290,6 +2724,9 @@ function toast(msg, tipo) {
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// aplicar paróquias/capelas extras guardadas localmente na carga
+setTimeout(() => { try { aplicarLocaisExtras(); } catch (e) {} }, 0);
 
 function formatarCPF(el) {
   let v = el.value.replace(/\D/g,'');
@@ -2520,6 +2957,7 @@ function descontarEstoque(paroquia) {
 
 // ── Renderização ──────────────────────────────────────
 function renderEstoque() {
+  try { renderCorrecoesEstoque(); } catch (e) {}
   const par = usuarioAtual.paroquia;
   const isAdmin = par === '__admin__';
 
@@ -2709,7 +3147,7 @@ function renderVisaoGeralCestas() {
   const linhas = LISTA_PAROQUIAS.slice().sort().map(p => {
     const e = estoques[p] || {};
     const entradas = e.totalEntradas || 0;
-    const saidasFamilias = entregas.filter(x => x.paroquia === p).length;
+    const saidasFamilias = entregas.filter(x => x.paroquia === p && !x.estornada).length;
     let cedidas = 0, recebidas = 0;
     Object.keys(estoques).forEach(pOf => {
       const eOf = estoques[pOf];
@@ -2832,6 +3270,7 @@ function renderHistoricoCompartilhamento() {
 let estoquesUnsubscribe = null;
 function carregarEstoquesFirebase() {
   if (!usandoFirebase || !db) return;
+  carregarCorrecoesFirebase();
   if (estoquesUnsubscribe) return; // já ouvindo
   estoquesUnsubscribe = db.collection('estoques').onSnapshot(snap => {
     estoques = {};
@@ -3182,7 +3621,7 @@ function removerAnexoChat() {
 }
 
 function mostrarBloqueio(tipo, familia) {
-  const entsFam = entregas.filter(e => e.familiaId === familia.id);
+  const entsFam = entregas.filter(e => e.familiaId === familia.id && !e.estornada);
   const corpo = document.getElementById('modal-bloqueio-corpo');
 
   // Montar histórico de cestas
@@ -3469,6 +3908,8 @@ function mostrarBtnInstalar() {
 
 let itensDiversos = [];
 let itensListener = null;
+let itensRemovidos = [];
+let itensRemovidosListener = null;
 let itemSolicitandoId = null;
 
 function getParoquiaItens() {
@@ -3507,6 +3948,13 @@ function mudarAbaEstoque(aba) {
 function carregarItens() {
   if (!usandoFirebase || !db) { renderItens([]); return; }
   if (itensListener) { renderItens(itensDiversos); return; }
+  if (!itensRemovidosListener) {
+    itensRemovidosListener = db.collection('itens_diversos').where('ativo', '==', false).onSnapshot(snap => {
+      itensRemovidos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      itensRemovidos.sort((a, b) => (b.removidoEm || '').localeCompare(a.removidoEm || ''));
+      renderItens(itensDiversos);
+    }, () => {});
+  }
   itensListener = db.collection('itens_diversos')
     .where('ativo', '==', true)
     .onSnapshot(snap => {
@@ -3577,7 +4025,7 @@ function renderItens(lista) {
   renderVisaoGeralItens(lista);
   const div = document.getElementById('itens-lista');
   if (!lista.length) {
-    div.innerHTML = '<div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.<br>Clique em <strong>+ Registrar Item</strong> para adicionar.</p></div>';
+    div.innerHTML = '<div class="vazio"><div class="vazio-icone">🎁</div><p>Nenhum item cadastrado ainda.<br>Clique em <strong>+ Registrar Item</strong> para adicionar.</p></div>' + htmlItensRemovidos();
     return;
   }
 
@@ -3599,6 +4047,10 @@ function renderItens(lista) {
       if (pendentes.length) {
         acoes += `<button class="btn btn-primario btn-sm" onclick="verSolicitacoes('${item.id}')">📩 ${pendentes.length} solicitação(ões)</button>`;
       }
+      const baixas = (item.solicitacoes || []).filter(s => s.status === 'aprovado');
+      if (baixas.length) {
+        acoes += `<button class="btn btn-secundario btn-sm" onclick="verBaixasItem('${item.id}')">↩️ Corrigir baixa</button>`;
+      }
       acoes += `<button class="btn btn-perigo btn-sm" onclick="removerItem('${item.id}')">Remover</button>`;
     } else if (disponivel && item.status !== 'solicitado') {
       acoes += `<button class="btn btn-secundario btn-sm" onclick="abrirModalSolicitarItem('${item.id}')">📩 Solicitar</button>`;
@@ -3615,9 +4067,104 @@ function renderItens(lista) {
         ${item.doador ? `<span>🤝 ${esc(item.doador)}</span>` : ''}
         ${item.obs ? `<span>💬 ${esc(item.obs)}</span>` : ''}
       </div>
+      ${(item.correcoes && item.correcoes.length) ? (() => { const c = item.correcoes[item.correcoes.length - 1]; return `<div style="margin-top:8px;padding:7px 10px;background:#FEF5E7;border-left:4px solid var(--amarelo);border-radius:6px;font-size:0.78rem;">↩️ <strong>${esc(c.texto || 'Correção')}</strong>${c.quantidade ? ' (+' + c.quantidade + ' ' + esc(item.unidade || '') + ')' : ''}<br>Motivo: ${esc(c.motivo || '—')} · por ${esc(c.por || '—')} em ${formatarData((c.em || '').substring(0,10))}</div>`; })() : ''}
       <div class="item-card-acoes">${acoes}</div>
     </div>`;
-  }).join('');
+  }).join('') + htmlItensRemovidos();
+}
+
+function htmlItensRemovidos() {
+  const minhaPar = usuarioAtual.paroquia;
+  const lista = itensRemovidos.filter(i => minhaPar === '__admin__' || i.paroquia === minhaPar);
+  if (!lista.length) return '';
+  return `<details style="margin-top:18px;"><summary style="cursor:pointer;font-weight:600;font-size:0.9rem;">🗑️ Itens removidos (${lista.length}) — restaurar se foi por engano</summary>
+    ${lista.slice(0, 20).map(i => `<div class="item-card" style="opacity:0.85;margin-top:8px;">
+      <div class="item-card-titulo">${esc(i.categoria || '')} — ${esc(i.descricao || '')}</div>
+      <div class="item-card-info"><span>📦 ${i.qtdDisponivel} ${esc(i.unidade || '')}</span>
+        <span>🗑️ ${esc(i.removidoMotivo || 'sem motivo informado')}</span>
+        ${i.removidoPor ? `<span>por ${esc(i.removidoPor)}${i.removidoEm ? ' em ' + formatarData(i.removidoEm.substring(0,10)) : ''}</span>` : ''}</div>
+      <div class="item-card-acoes"><button class="btn btn-secundario btn-sm" onclick="abrirRestaurarItem('${i.id}')">↩️ Restaurar (remoção errada)</button></div>
+    </div>`).join('')}</details>`;
+}
+
+function verBaixasItem(itemId) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  const baixas = (item.solicitacoes || []).map((s, idx) => ({ ...s, idx })).filter(s => s.status === 'aprovado');
+  if (!baixas.length) { toast('Nenhuma baixa para corrigir.', ''); return; }
+  const lista = baixas.map(s => `<div style="padding:10px 0;border-bottom:1px solid var(--cinza-claro);">
+      Cedido a <strong>${esc((s.paroquiaSolicitante || '').replace('Paróquia ','').split('(')[0].trim())}</strong>:
+      <strong>${s.qtd} ${esc(item.unidade || 'unidade(s)')}</strong><br>
+      <span style="font-size:0.8rem;color:var(--cinza-texto);">Motivo do pedido: ${esc(s.motivo || '—')}</span><br>
+      <button class="btn btn-secundario btn-sm" style="margin-top:6px;" onclick="abrirEstornoItem('${itemId}',${s.idx})">↩️ Esta baixa está errada</button>
+    </div>`).join('');
+  abrirConfirmar({ titulo: '↩️ Corrigir baixa — ' + (item.descricao || ''), html: lista, semBotao: true });
+}
+
+function abrirEstornoItem(itemId, idx) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item || !item.solicitacoes || !item.solicitacoes[idx]) return;
+  const s = item.solicitacoes[idx];
+  abrirConfirmar({
+    titulo: '↩️ Corrigir baixa de item',
+    html: `Será estornada a cessão de <strong>${s.qtd} ${esc(item.unidade || 'unidade(s)')}</strong> de <strong>${esc(item.descricao)}</strong> para ${esc((s.paroquiaSolicitante || '').replace('Paróquia ','').split('(')[0].trim())}.
+      A quantidade volta ao estoque e o registro fica marcado como <strong>baixa lançada por engano</strong>.
+      ${htmlMotivoCorrecao()}`,
+    btnTexto: 'Estornar e devolver ao estoque',
+    btnClasse: 'btn-perigo',
+    onConfirm: () => {
+      const motivo = lerMotivoCorrecao();
+      if (!motivo) return;
+      fecharModal('modal-confirmar');
+      executarEstornoItem(itemId, idx, motivo);
+    }
+  });
+}
+
+function executarEstornoItem(itemId, idx, motivo) {
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item || !item.solicitacoes || !item.solicitacoes[idx] || item.solicitacoes[idx].status !== 'aprovado') return;
+  if (usuarioAtual.paroquia !== '__admin__' && item.paroquia !== usuarioAtual.paroquia) { toast('Sem permissão.', 'erro'); return; }
+  const s = item.solicitacoes[idx];
+  const agora = new Date().toISOString();
+  const por = usuarioAtual.nome || usuarioAtual.usuario;
+  const texto = 'Baixa lançada por engano — quantidade devolvida ao estoque';
+  const novas = item.solicitacoes.map((x, i) => i === idx ? { ...x, status: 'estornado', estornoMotivo: motivo, estornoPor: por, estornoEm: agora } : x);
+  const novaQtd = Math.min(item.qtdTotal || Infinity, (item.qtdDisponivel || 0) + s.qtd);
+  const pend = novas.some(x => x.status === 'pendente');
+  const correcoes = [...(item.correcoes || []), { tipo: 'estorno', quantidade: s.qtd, motivo, por, em: agora, texto }];
+  const log = { origem: 'item', paroquia: item.paroquia, quantidade: s.qtd, unidade: item.unidade || '', descricao: item.descricao + ' (cedido a ' + (s.paroquiaSolicitante || '—') + ')', motivo, por, em: agora, texto, refId: itemId };
+  Promise.all([
+    db.collection('itens_diversos').doc(itemId).update({ solicitacoes: novas, qtdDisponivel: novaQtd, status: pend ? 'solicitado' : 'disponivel', correcoes }),
+    db.collection('correcoes_estoque').add(log)
+  ]).then(() => toast('Baixa corrigida: ' + s.qtd + ' ' + (item.unidade || '') + ' devolvido(s) ao estoque.', 'ok'))
+    .catch(e => toast('Erro: ' + e.message, 'erro'));
+}
+
+function abrirRestaurarItem(itemId) {
+  const item = itensRemovidos.find(i => i.id === itemId);
+  if (!item) return;
+  abrirConfirmar({
+    titulo: '↩️ Restaurar item removido',
+    html: `O item <strong>${esc(item.descricao)}</strong> (${item.qtdDisponivel} ${esc(item.unidade || '')}) volta ao estoque, marcado como <strong>remoção lançada por engano</strong>.
+      ${htmlMotivoCorrecao()}`,
+    btnTexto: 'Restaurar item',
+    btnClasse: 'btn-primario',
+    onConfirm: () => {
+      const motivo = lerMotivoCorrecao();
+      if (!motivo) return;
+      fecharModal('modal-confirmar');
+      const agora = new Date().toISOString();
+      const por = usuarioAtual.nome || usuarioAtual.usuario;
+      const texto = 'Remoção lançada por engano — item devolvido ao estoque';
+      const correcoes = [...(item.correcoes || []), { tipo: 'restauracao', quantidade: item.qtdDisponivel, motivo, por, em: agora, texto }];
+      Promise.all([
+        db.collection('itens_diversos').doc(itemId).update({ ativo: true, correcoes }),
+        db.collection('correcoes_estoque').add({ origem: 'item', paroquia: item.paroquia, quantidade: item.qtdDisponivel, unidade: item.unidade || '', descricao: item.descricao + ' (item removido)', motivo, por, em: agora, texto, refId: itemId })
+      ]).then(() => toast('Item restaurado ao estoque.', 'ok'))
+        .catch(e => toast('Erro: ' + e.message, 'erro'));
+    }
+  });
 }
 
 function abrirModalNovoItem() {
@@ -3816,10 +4363,27 @@ function recusarSolicitacao(itemId, idx) {
 }
 
 function removerItem(itemId) {
-  if (!confirm('Remover este item do estoque?')) return;
-  db.collection('itens_diversos').doc(itemId).update({ ativo: false })
-    .then(() => toast('Item removido.', 'ok'))
-    .catch(e => toast('Erro: ' + e.message, 'erro'));
+  const item = itensDiversos.find(i => i.id === itemId);
+  if (!item) return;
+  abrirConfirmar({
+    titulo: 'Remover item do estoque',
+    html: `Remover <strong>${esc(item.descricao)}</strong> (${item.qtdDisponivel} ${esc(item.unidade || '')})?<br>
+      <span style="font-size:0.8rem;color:var(--cinza-texto);">Se for por engano, ele poderá ser restaurado em "Itens removidos".</span>
+      <div style="margin-top:12px;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Motivo da remoção *</label>
+      <input type="text" id="remover-item-motivo" placeholder="Ex.: doado, vencido, lançado errado" style="width:100%;padding:9px;border:1.5px solid var(--cinza-medio);border-radius:8px;font-size:0.88rem;"></div>`,
+    btnTexto: 'Remover',
+    btnClasse: 'btn-perigo',
+    onConfirm: () => {
+      const motivo = ((document.getElementById('remover-item-motivo') || {}).value || '').trim();
+      if (!motivo) { toast('Informe o motivo da remoção.', 'erro'); return; }
+      fecharModal('modal-confirmar');
+      db.collection('itens_diversos').doc(itemId).update({
+        ativo: false, removidoMotivo: motivo,
+        removidoPor: usuarioAtual.nome || usuarioAtual.usuario, removidoEm: new Date().toISOString()
+      }).then(() => toast('Item removido.', 'ok'))
+        .catch(e => toast('Erro: ' + e.message, 'erro'));
+    }
+  });
 }
 
 

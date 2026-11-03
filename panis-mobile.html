@@ -37,6 +37,13 @@ button{font-family:inherit;cursor:pointer;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;}
 .badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;display:inline-block;}
 .label{font-size:13px;font-weight:600;color:oklch(38% 0.02 50);margin-bottom:5px;display:block;}
+.sheet-ov{position:fixed;inset:0;background:rgba(30,20,12,.5);z-index:900;display:none;align-items:flex-end;justify-content:center;}
+.sheet-ov.on{display:flex;}
+.sheet{background:var(--card);width:100%;max-width:520px;max-height:88vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 18px 22px;box-shadow:0 -8px 30px rgba(0,0,0,.25);}
+.sheet h2{margin:0 0 4px;font-size:18px;}
+.sheet-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+.sheet-row span:first-child{min-width:96px;color:var(--text-3);font-size:12px;}
+.sheet-warn{margin-top:10px;padding:9px 11px;background:#FEF5E7;border-left:4px solid #E0A526;border-radius:8px;font-size:12.5px;}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:oklch(20% 0.02 50);color:#fff;padding:10px 18px;border-radius:10px;font-size:13.5px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;text-align:center;}
 .toast.show{opacity:1;}
 .toast.erro{background:oklch(45% 0.15 30);}
@@ -133,6 +140,7 @@ button{font-family:inherit;cursor:pointer;}
   </div>
 </div>
 
+<div class="sheet-ov" id="sheet-ov" onclick="if(event.target===this)fecharSheet()"><div class="sheet" id="sheet-box"></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -226,8 +234,10 @@ const usuariosPadrao = [
 
 let usuarioAtual = null;
 let telaAtual = 'home';
+const CAPELAS_POR_PAROQUIA = {"Paróquia Santo Antônio (Aramina-SP)": ["Capela Nossa Senhora Aparecida", "Comunidade Brejão", "Comunidade dos Três Reis"], "Paróquia Nossa Senhora do Patrocínio (Buritizal-SP)": [], "Paróquia Santa Rita de Cássia (Igarapava-SP)": ["Capela Nossa Senhora da Abadia", "Capela Santa Cruz", "Capela Santo Antônio", "Capela São Geraldo", "Comunidade Nossa Senhora das Graças", "Comunidade Santo Ezequiel Moreno", "Comunidade Santo Frei Galvão", "Comunidade São Bento"], "Paróquia Nossa Senhora do Carmo (Ituverava-SP)": ["Capela Nossa Senhora Aparecida", "Capela Nossa Senhora do Rosário", "Capela São Benedito", "Capela São Pedro e São Paulo", "Comunidade Aparecida do Salto", "Comunidade Capivari da Mata"], "Paróquia São João Batista (Ituverava-SP)": ["Capela Imaculada Conceição", "Capela Sagrado Coração de Jesus"], "Paróquia São Sebastião (Jeriquara-SP)": [], "Paróquia Nossa Senhora do Patrocínio (Patrocínio Paulista-SP)": ["Capela Santa Cruz", "Capela São Sebastião", "Comunidade da Cachoeira", "Comunidade do Lambari", "Comunidade do Palmital"], "Paróquia Nossa Senhora Aparecida (Pedregulho-SP)": ["Capela Nossa Senhora das Graças", "Capela Sagrada Família", "Capela São Benedito", "Capela São Francisco de Assis", "Capela São Pedro", "Capela São Sebastião"], "Paróquia Santo Antônio (Rifaina-SP)": [], "Paróquia Nossa Senhora Aparecida (Itirapuã-SP)": ["Capela São Sebastião", "Lar São Francisco (Asilo)"], "Paróquia Nossa Senhora Aparecida - Capelinha (Franca-SP)": ["Capela Divino Pai Eterno", "Capela Nossa Senhora da Penha", "Capela Nossa Senhora das Dores", "Capela Santa Marta", "Capela São Francisco Xavier", "Capela São José", "Capela São Mateus", "Capela São Roque", "Capela Senhora de Fátima"], "Paróquia Nossa Senhora da Guia (Franca-SP)": [], "Paróquia Sagrada Família (Franca-SP)": ["Capela Nossa Senhora de Guadalupe", "Capela Santa Clara", "Capela Santa Maria dos Anjos"], "Paróquia Sagrado Coração de Jesus (Franca-SP)": ["Capela Divino Espírito Santo", "Capela São Francisco de Assis", "Capela São Geraldo Magela", "Capela São Lucas", "Capela São Paulo"], "Paróquia Sant'Ana (Franca-SP)": [], "Paróquia Santa Rita de Cássia (Franca-SP)": ["Capela Nossa Senhora de Lourdes", "Capela São José Operário"], "Paróquia São Francisco de Assis (Franca-SP)": ["Capela Sagrado Coração de Jesus"], "Paróquia São João Batista (Franca-SP)": ["Capela Nossa Senhora do Carmo", "Capela Santa Dorothea", "Capela São Cristóvão"], "Paróquia São Pedro (Franca-SP)": ["Capela Santa Teresinha do Menino Jesus", "Capela São João Paulo II"], "Paróquia Menino Jesus de Praga e Santa Ifigênia (Franca-SP)": ["Capela Divino Pai Eterno"], "Paróquia Nossa Senhora das Graças (Franca-SP)": [], "Paróquia Nossa Senhora Aparecida (Restinga-SP)": [], "Paróquia Santa Luzia (Franca-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Rafael"], "Paróquia São Sebastião (Franca-SP)": [], "Santuário Diocesano Santo Antônio (Franca-SP)": [], "Sé Catedral Nossa Senhora da Conceição (Franca-SP)": [], "Paróquia Nossa Senhora da Abadia (Cristais Paulista-SP)": ["Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Rita", "Capela São José"], "Paróquia Nossa Senhora Rosa Mística (Franca-SP)": ["Capela Santo Antônio de Santana Galvão (Frei Galvão)"], "Paróquia Santa Cruz (Ribeirão Corrente-SP)": ["Capela Nossa Senhora das Graças"], "Paróquia Santa Edwiges (Franca-SP)": ["Capela Santa Paulina", "Comunidade Jesus Misericordioso"], "Paróquia Santa Gianna (Franca-SP)": ["Capela Nossa Senhora Auxiliadora", "Capela Nossa Senhora de Fátima", "Capela Nossa Senhora do Carmo", "Capela Nossa Senhora do Rosário"], "Paróquia Santa Mônica (Franca-SP)": [], "Paróquia Santa Teresinha (Franca-SP)": ["Capela Santo Tomás de Aquino"], "Paróquia São Benedito (Franca-SP)": ["Capela Nossa Senhora do Sagrado Coração"], "Paróquia São Crispim (Franca-SP)": ["Capela São Miguel"], "Paróquia São Judas Tadeu (Franca-SP)": [], "Paróquia São Vicente de Paulo (Franca-SP)": ["Capela Santo Expedito"], "Paróquia Divino Espírito Santo (Nuporanga-SP)": ["Capela Nossa Senhora Aparecida"], "Paróquia Nossa Senhora Aparecida (São Joaquim da Barra-SP)": ["Capela São José", "Comunidade Santa Terezinha", "Comunidade São João Batista"], "Paróquia Nosso Senhor Jesus Cristo Rei do Universo (Orlândia-SP)": ["Comunidade Santa Zita e Santo Antônio", "Igreja Santa Rita"], "Paróquia Santa Rita de Cássia (Sales Oliveira-SP)": ["Capela São José"], "Paróquia São Joaquim (São Joaquim da Barra-SP)": ["Capela Santo Hilário (Rural)"], "Paróquia São José (Orlândia-SP)": ["Capela do Cemitério", "Capela do Hospital Beneficente Santo Antônio", "Capela Mãe Rainha", "Capela Nossa Senhora Aparecida", "Capela Sagrada Família", "Capela Santa Genoveva", "Capela São Francisco de Assis", "Capela São João Batista"], "Paróquia São José (São José da Bela Vista-SP)": ["Capela Nossa Senhora de Fátima"], "Paróquia São Sebastião e Santo Antônio (Guará-SP)": ["Capela Nossa Senhora Aparecida", "Capela São Pedro", "Capela Senhor Bom Jesus da Lapa", "Centro Catequético Santa Rita"]};
 let familias = [], entregas = [], estoques = {}, agentes = [], chatMsgs = [], compartilhamentos = [];
-let unsubFam, unsubEnt, unsubEst, unsubChat, unsubAgt, unsubComp;
+let unsubFam, unsubEnt, unsubEst, unsubChat, unsubAgt, unsubComp, unsubCorr;
+let correcoesEstoque = [];
 let familyFilter = 'ativas', buscaFamilia = '';
 let selectedFamilyId = null;
 let entregaDestino = 'familia', entregaSelFamiliaId = null, entregaOrigemTipo = 'proprio';
@@ -242,6 +252,48 @@ function toast(msg, tipo){
   window.__toastT = setTimeout(()=> el.classList.remove('show'), 2600);
 }
 function isAdmin(){ return usuarioAtual && usuarioAtual.nivel === 'admin'; }
+
+/* ================= CONFIRMAÇÃO (BOTTOM SHEET) ================= */
+let sheetOnConfirm = null;
+function abrirSheet(o){
+  sheetOnConfirm = o.onConfirm || null;
+  document.getElementById('sheet-box').innerHTML = `
+    <h2 class="serif">${o.titulo||'Confirmar'}</h2>
+    <div style="margin-top:6px;">${o.html||''}</div>
+    <div class="col" style="gap:8px;margin-top:16px;">
+      <button class="btn-primary ${o.perigo?'btn-danger':''}" onclick="sheetConfirmar()">${o.btnTexto||'Confirmar'}</button>
+      <button class="btn-secondary" onclick="fecharSheet()">Voltar e corrigir</button>
+    </div>`;
+  document.getElementById('sheet-ov').classList.add('on');
+}
+function fecharSheet(){ document.getElementById('sheet-ov').classList.remove('on'); sheetOnConfirm = null; }
+function sheetConfirmar(){ if (sheetOnConfirm) sheetOnConfirm(); }
+function shRow(rot,val){ return `<div class="sheet-row"><span>${rot}</span><span style="flex:1;">${val}</span></div>`; }
+function htmlMotivoCorrecao(){
+  return `<div style="margin-top:12px;">
+    <label class="label">O que aconteceu? *</label>
+    <select id="corr-motivo-tipo" style="margin-bottom:8px;">
+      <option value="">— Selecione —</option>
+      <option>Lançada para a família errada</option>
+      <option>Lançada em duplicidade</option>
+      <option>Quantidade lançada errada</option>
+      <option>Item/cesta não foi entregue</option>
+      <option value="Outro">Outro motivo</option>
+    </select>
+    <textarea id="corr-motivo-detalhe" rows="2" placeholder="Detalhe (obrigatório se escolher 'Outro')" style="width:100%;"></textarea>
+  </div>`;
+}
+function lerMotivoCorrecao(){
+  const tipo = (document.getElementById('corr-motivo-tipo')||{}).value || '';
+  const det = ((document.getElementById('corr-motivo-detalhe')||{}).value || '').trim();
+  if (!tipo){ toast('Selecione o que aconteceu.','erro'); return null; }
+  if (tipo==='Outro' && !det){ toast('Descreva o motivo da correção.','erro'); return null; }
+  return (tipo==='Outro'?'':tipo) + (tipo!=='Outro' && det ? ' — ' : '') + det;
+}
+function podeCorrigirEntrega(e){
+  if (isAdmin()) return true;
+  return ['responsavel','agente'].includes(usuarioAtual.nivel) && e.paroquia === minhaParoquia();
+}
 function minhaParoquia(){ return usuarioAtual ? usuarioAtual.paroquia : ''; }
 function initialsOf(nome){ return (nome||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 function fmtData(iso){
@@ -250,13 +302,54 @@ function fmtData(iso){
   return d.length===3 ? d[2]+'/'+d[1] : iso;
 }
 
+/* ================= LOCAIS EXTRAS (paróquias/capelas não listadas) ================= */
+function normLocal(x){ return (x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+let locaisExtras = [], locaisUnsub = null;
+function aplicarLocaisExtras(){
+  locaisExtras.forEach(l=>{
+    if (!l || !l.nome) return;
+    if (l.tipo==='paroquia'){
+      if (!LISTA_PAROQUIAS.some(p=>normLocal(p)===normLocal(l.nome))) LISTA_PAROQUIAS.push(l.nome);
+      if (!CAPELAS_POR_PAROQUIA[l.nome]) CAPELAS_POR_PAROQUIA[l.nome] = [];
+    } else if (l.tipo==='capela' && l.paroquia){
+      if (!CAPELAS_POR_PAROQUIA[l.paroquia]) CAPELAS_POR_PAROQUIA[l.paroquia] = [];
+      const arr = CAPELAS_POR_PAROQUIA[l.paroquia];
+      if (!arr.some(c=>normLocal(c)===normLocal(l.nome))) arr.push(l.nome);
+    }
+  });
+  montarLoginSelect();
+}
+function carregarLocaisExtras(){
+  if (!db || locaisUnsub) return;
+  locaisUnsub = db.collection('locais_extras').onSnapshot(snap=>{
+    locaisExtras = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    aplicarLocaisExtras();
+  }, ()=>{});
+}
+function registrarLocalExtra(tipo, nome, paroquia){
+  nome = (nome||'').replace(/\s+/g,' ').trim();
+  const existentes = tipo==='paroquia' ? LISTA_PAROQUIAS : (CAPELAS_POR_PAROQUIA[paroquia]||[]);
+  const exato = existentes.find(x=>normLocal(x)===normLocal(nome));
+  if (exato) return Promise.resolve(exato);
+  const nn = normLocal(nome);
+  const parecida = nn.length>=5 ? existentes.find(x=>normLocal(x).includes(nn) || nn.includes(normLocal(x))) : null;
+  if (parecida && confirm('Já existe "'+parecida+'" na lista.\n\nUsar essa em vez de cadastrar "'+nome+'"?')) return Promise.resolve(parecida);
+  const reg = { tipo, nome, paroquia: paroquia||'', criadoPor: usuarioAtual.nome||usuarioAtual.usuario, criadoEm: new Date().toISOString() };
+  return db.collection('locais_extras').add(reg).then(()=>{ locaisExtras.push(reg); aplicarLocaisExtras(); return nome; });
+}
+
 /* ================= LOGIN ================= */
-(function initLoginSelect(){
+function montarLoginSelect(){
   const sel = document.getElementById('login-paroquia');
+  if (!sel) return;
+  const atual = sel.value;
   sel.innerHTML = '<option value="">Selecione...</option>' +
     '<option value="__admin__">▸ Administração Diocese (Admin)</option>' +
     LISTA_PAROQUIAS.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
-})();
+  if (atual) sel.value = atual;
+}
+montarLoginSelect();
+carregarLocaisExtras();
 
 function aoSelecionarParoquia(){
   const paroquia = document.getElementById('login-paroquia').value;
@@ -341,7 +434,7 @@ function iniciarSessao(u){
 function doLogout(){
   if (!confirm('Deseja sair do sistema?')) return;
   localStorage.removeItem('df_sessao');
-  [unsubFam,unsubEnt,unsubEst,unsubChat,unsubAgt,unsubComp].forEach(u=>{ if(u) u(); });
+  [unsubFam,unsubEnt,unsubEst,unsubChat,unsubAgt,unsubComp,unsubCorr].forEach(u=>{ if(u) u(); });
   usuarioAtual = null;
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('tela-login').style.display = 'flex';
@@ -405,6 +498,12 @@ function iniciarListeners(){
     render();
   }, ()=>{});
 
+  const qCorr = isAdmin() ? db.collection('correcoes_estoque') : db.collection('correcoes_estoque').where('paroquia','==',minhaParoquia());
+  unsubCorr = qCorr.onSnapshot(snap=>{
+    correcoesEstoque = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.em||'').localeCompare(a.em||''));
+    render();
+  }, ()=>{});
+
   const qComp = isAdmin() ? db.collection('compartilhamentos') : db.collection('compartilhamentos').where('paroquiaDestino','==',minhaParoquia());
   unsubComp = qComp.onSnapshot(snap=>{
     compartilhamentos = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
@@ -428,6 +527,7 @@ function abrirFamilia(id){ selectedFamilyId = id; goTela('familyDetail'); }
 function render(){
   document.getElementById('bottomnav').innerHTML = renderNav();
   document.getElementById('content').innerHTML = renderTela();
+  if (telaAtual==='novaFamilia') nfAtualizarCapelas();
 }
 
 function navIcon(name){
@@ -472,7 +572,7 @@ function renderTela(){
 function renderHome(){
   const ativas = familias.filter(f=>!f.inativo);
   const mesAtual = new Date().toISOString().slice(0,7);
-  const entregasMes = entregas.filter(e=> (e.data||'').slice(0,7) === mesAtual).length;
+  const entregasMes = entregas.filter(e=> !e.estornada && (e.data||'').slice(0,7) === mesAtual).length;
   const saldo = isAdmin()
     ? Object.values(estoques).reduce((s,e)=>s+(e.saldo||0),0)
     : ((estoques[minhaParoquia()]||{}).saldo || 0);
@@ -551,8 +651,8 @@ function renderFamilias(){
         <div class="card row" style="align-items:center;gap:12px;cursor:pointer;" onclick="abrirFamilia('${f.id}')">
           <div class="avatar" style="width:38px;height:38px;font-size:12px;">${esc(initialsOf(f.nome))}</div>
           <div class="col" style="flex:1;gap:2px;min-width:0;">
-            <div style="font-size:14.5px;font-weight:600;">${esc(f.nome)}</div>
-            <div style="font-size:12.5px;color:var(--text-3);">${esc(f.bairro||'—')} · ${f.pessoas||1} pessoa(s)</div>
+            <div style="font-size:14.5px;font-weight:600;">${f.tipo==='instituicao'?'🏛️ ':''}${esc(f.nome)}</div>
+            <div style="font-size:12.5px;color:var(--text-3);">${f.tipo==='instituicao'?'Instituição · ':''}${esc(f.bairro||'—')} · ${f.pessoas||1} pessoa(s)</div>
           </div>
           <span class="badge" style="background:${f.inativo?'oklch(92% 0.005 60)':'var(--green-bg)'};color:${f.inativo?'oklch(45% 0.01 60)':'var(--green-fg)'};">${f.inativo?'Inativa':'Ativa'}</span>
         </div>`).join('') : '<div class="card" style="text-align:center;color:var(--text-3);">Nenhuma família encontrada.</div>'}
@@ -566,8 +666,8 @@ function renderFamilias(){
 function renderFamilyDetail(){
   const f = familias.find(x=>x.id===selectedFamilyId);
   if (!f) return '<div class="section">Família não encontrada.</div>';
-  const historico = entregas.filter(e=>e.familiaId===f.id).slice(0,10);
-  const podeGerenciar = isAdmin() || usuarioAtual.nivel==='responsavel';
+  const historico = entregas.filter(e=>e.familiaId===f.id && !e.estornada).slice(0,10);
+  const podeGerenciar = isAdmin() || (['responsavel','agente'].includes(usuarioAtual.nivel) && f.paroquia===minhaParoquia());
   return `
   <div class="section col" style="gap:16px;">
     <div class="backrow">
@@ -580,8 +680,10 @@ function renderFamilyDetail(){
       <span class="badge" style="background:${f.inativo?'oklch(92% 0.005 60)':'var(--green-bg)'};color:${f.inativo?'oklch(45% 0.01 60)':'var(--green-fg)'};">${f.inativo?'Inativa':'Ativa'}</span>
     </div>
     <div class="grouped">
-      ${linhaDetalhe('CPF', f.cpf)}
+      ${f.tipo==='instituicao' ? linhaDetalhe('Tipo', (f.instituicaoTipo||'Instituição')+(f.responsavelInst?' · '+f.responsavelInst:'')) : ''}
+      ${linhaDetalhe(f.tipo==='instituicao'?'CNPJ':'CPF', f.cpf)}
       ${linhaDetalhe('Paróquia', f.paroquia)}
+      ${f.capela ? linhaDetalhe('Capela', f.capela) : ''}
       ${linhaDetalhe('Endereço', (f.endereco||'')+(f.bairro?' — '+f.bairro:''))}
       ${linhaDetalhe('Cidade', f.cidade)}
       ${linhaDetalhe('Telefone', f.telefone)}
@@ -605,6 +707,10 @@ function backIcon(){
 }
 
 function toggleInativarFamilia(id, estaInativa){
+  const fam = familias.find(x=>x.id===id);
+  if (!fam || !(isAdmin() || (['responsavel','agente'].includes(usuarioAtual.nivel) && fam.paroquia===minhaParoquia()))) {
+    toast('Sem permissão para alterar famílias de outra paróquia.','erro'); return;
+  }
   db.collection('familias').doc(id).update({ inativo: !estaInativa })
     .then(()=> toast(estaInativa?'Família reativada!':'Família inativada.', 'ok'))
     .catch(e=> toast('Erro: '+e.message,'erro'));
@@ -618,15 +724,26 @@ function excluirFamilia(id){
 
 /* ================= NOVA FAMÍLIA ================= */
 function renderNovaFamilia(){
-  const mostrarParoquiaSel = isAdmin();
+  const admin = isAdmin();
+  const listaPar = LISTA_PAROQUIAS.slice().sort((a,b)=>a.localeCompare(b,'pt-BR'));
   return `
   <div class="section col" style="gap:14px;">
     <div class="backrow">
       <div class="backbtn" onclick="goTela('familias')">${backIcon()}</div>
-      <h1 class="serif" style="margin:0;font-size:18px;">Nova família</h1>
+      <h1 class="serif" style="margin:0;font-size:18px;">Novo cadastro</h1>
     </div>
-    <div><label class="label">Nome do responsável *</label><input type="text" id="nf-nome" placeholder="Nome completo"></div>
-    <div><label class="label">CPF *</label><input type="text" id="nf-cpf" placeholder="000.000.000-00"></div>
+    <div class="toggle-row">
+      <button class="toggle-btn on" id="nf-tipo-familia" onclick="nfSetTipo('familia')">🏠 Família</button>
+      <button class="toggle-btn" id="nf-tipo-inst" onclick="nfSetTipo('instituicao')">🏛️ Instituição</button>
+    </div>
+    <input type="hidden" id="nf-tipo" value="familia">
+    <div><label class="label" id="nf-lbl-nome">Nome do responsável *</label><input type="text" id="nf-nome" placeholder="Nome completo"></div>
+    <div id="nf-grupo-inst" class="col" style="gap:14px;display:none;">
+      <div><label class="label">Tipo de instituição</label>
+        <select id="nf-inst-tipo"><option>Asilo / Lar de idosos</option><option>Creche / Escola</option><option>Abrigo</option><option>Associação / ONG</option><option>Pastoral / Conferência Vicentina</option><option>Casa de recuperação</option><option>Outra</option></select></div>
+      <div><label class="label">Responsável pela instituição</label><input type="text" id="nf-inst-resp" placeholder="Nome do responsável"></div>
+    </div>
+    <div><label class="label" id="nf-lbl-cpf">CPF *</label><input type="text" id="nf-cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14" oninput="nfFormatarDoc(this)"></div>
     <div class="row" style="gap:10px;">
       <div style="flex:1;"><label class="label">CEP</label><input type="text" id="nf-cep" placeholder="00000-000" oninput="if(this.value.replace(/\\D/g,'').length===8) buscarCep(this.value)"></div>
       <div style="flex:1.4;"><label class="label">Bairro</label><input type="text" id="nf-bairro" placeholder="Preenchido pelo CEP"></div>
@@ -636,15 +753,77 @@ function renderNovaFamilia(){
       <div style="flex:1;"><label class="label">Número *</label><input type="text" id="nf-numero" placeholder="nº"></div>
       <div style="flex:1;"><label class="label">Cidade</label><input type="text" id="nf-cidade" placeholder="Preenchido pelo CEP"></div>
     </div>
-    ${mostrarParoquiaSel ? `<div><label class="label">Paróquia *</label><select id="nf-paroquia">${LISTA_PAROQUIAS.map(p=>`<option>${esc(p)}</option>`).join('')}</select></div>` : ''}
+    ${admin ? `<div><label class="label">Paróquia *</label>
+      <select id="nf-paroquia" onchange="nfAtualizarCapelas()">
+        <option value="">— Selecione —</option>
+        ${listaPar.map(p=>`<option>${esc(p)}</option>`).join('')}
+        <option value="__outra__">➕ Outra paróquia (não listada)</option>
+      </select>
+      <input type="text" id="nf-paroquia-nova" placeholder="Nome da nova paróquia (ex: Paróquia São José (Cidade-SP))" style="display:none;margin-top:6px;">
+    </div>` : ''}
+    <div id="nf-grupo-capela" style="display:none;"><label class="label">Capela / Comunidade</label>
+      <select id="nf-capela" onchange="nfCapelaMudou()"></select>
+      <input type="text" id="nf-capela-nova" placeholder="Nome da nova capela / comunidade" style="display:none;margin-top:6px;">
+    </div>
     <div class="row" style="gap:10px;">
       <div style="flex:1;"><label class="label">Telefone</label><input type="text" id="nf-telefone" placeholder="(16) 90000-0000"></div>
-      <div style="flex:1;"><label class="label">Nº de membros</label><input type="number" id="nf-pessoas" value="1" min="1"></div>
+      <div style="flex:1;"><label class="label" id="nf-lbl-pessoas">Nº de membros</label><input type="number" id="nf-pessoas" value="1" min="1"></div>
     </div>
     <div><label class="label">Observações</label><input type="text" id="nf-obs" placeholder="Opcional"></div>
     <div id="nf-status" style="font-size:12.5px;color:var(--text-3);"></div>
-    <button class="btn-primary" onclick="salvarNovaFamilia()">Salvar família</button>
+    <button class="btn-primary" onclick="salvarNovaFamilia()">Salvar cadastro</button>
   </div>`;
+}
+
+function nfSetTipo(t){
+  const inst = t==='instituicao';
+  document.getElementById('nf-tipo').value = t;
+  document.getElementById('nf-tipo-familia').classList.toggle('on', !inst);
+  document.getElementById('nf-tipo-inst').classList.toggle('on', inst);
+  document.getElementById('nf-lbl-nome').textContent = inst ? 'Nome da instituição *' : 'Nome do responsável *';
+  document.getElementById('nf-nome').placeholder = inst ? 'Ex: Lar São Vicente' : 'Nome completo';
+  document.getElementById('nf-lbl-cpf').textContent = inst ? 'CNPJ (opcional)' : 'CPF *';
+  const c = document.getElementById('nf-cpf');
+  c.placeholder = inst ? '00.000.000/0000-00' : '000.000.000-00';
+  c.maxLength = inst ? 18 : 14;
+  document.getElementById('nf-lbl-pessoas').textContent = inst ? 'Pessoas atendidas' : 'Nº de membros';
+  document.getElementById('nf-grupo-inst').style.display = inst ? 'flex' : 'none';
+  if (c.value) nfFormatarDoc(c);
+}
+function nfFormatarDoc(el){
+  const inst = document.getElementById('nf-tipo').value==='instituicao';
+  let v = el.value.replace(/\D/g,'');
+  if (inst){
+    v = v.slice(0,14).replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
+  } else {
+    v = v.slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  }
+  el.value = v;
+}
+function nfParoquiaAtual(){
+  if (!isAdmin()) return minhaParoquia();
+  const v = document.getElementById('nf-paroquia').value;
+  return v==='__outra__' ? '__nova__' : v;
+}
+function nfAtualizarCapelas(){
+  const selP = document.getElementById('nf-paroquia');
+  if (selP){
+    const nova = selP.value==='__outra__';
+    document.getElementById('nf-paroquia-nova').style.display = nova ? '' : 'none';
+  }
+  const par = nfParoquiaAtual();
+  const g = document.getElementById('nf-grupo-capela');
+  if (!g) return;
+  if (!par){ g.style.display = 'none'; return; }
+  const lista = CAPELAS_POR_PAROQUIA[par] || [];
+  document.getElementById('nf-capela').innerHTML = '<option value="">— Matriz —</option>' +
+    lista.map(c=>`<option>${esc(c)}</option>`).join('') +
+    '<option value="__outra__">➕ Outra capela / comunidade (não listada)</option>';
+  document.getElementById('nf-capela-nova').style.display = 'none';
+  g.style.display = '';
+}
+function nfCapelaMudou(){
+  document.getElementById('nf-capela-nova').style.display = document.getElementById('nf-capela').value==='__outra__' ? '' : 'none';
 }
 
 function buscarCep(cep){
@@ -660,31 +839,67 @@ function buscarCep(cep){
 }
 
 function salvarNovaFamilia(){
+  const tipo = document.getElementById('nf-tipo').value || 'familia';
+  const inst = tipo==='instituicao';
   const nome = document.getElementById('nf-nome').value.trim();
   const cpf = document.getElementById('nf-cpf').value.trim();
   const rua = document.getElementById('nf-rua').value.trim();
   const numero = document.getElementById('nf-numero').value.trim();
-  if (!nome){ toast('Informe o nome.','erro'); return; }
-  if (!cpf){ toast('Informe o CPF.','erro'); return; }
+  if (!nome){ toast(inst?'Informe o nome da instituição.':'Informe o nome.','erro'); return; }
+  if (!cpf && !inst){ toast('Informe o CPF.','erro'); return; }
   if (!rua){ toast('Informe a rua.','erro'); return; }
   if (!numero){ toast('Informe o número.','erro'); return; }
 
-  const paroquiaSelEl = document.getElementById('nf-paroquia');
-  const paroquia = paroquiaSelEl ? paroquiaSelEl.value : minhaParoquia();
-  const endereco = rua + ', ' + numero;
+  const selP = document.getElementById('nf-paroquia');
+  let paroquia = selP ? selP.value : minhaParoquia();
+  let novaPar = '';
+  if (selP){
+    if (!paroquia){ toast('Selecione a paróquia.','erro'); return; }
+    if (paroquia==='__outra__'){
+      novaPar = (document.getElementById('nf-paroquia-nova').value||'').trim();
+      if (!novaPar){ toast('Digite o nome da nova paróquia.','erro'); return; }
+    }
+  }
+  const capSel = (document.getElementById('nf-capela')||{}).value || '';
+  const novaCap = capSel==='__outra__' ? (document.getElementById('nf-capela-nova').value||'').trim() : '';
+  if (capSel==='__outra__' && !novaCap){ toast('Digite o nome da nova capela / comunidade.','erro'); return; }
 
-  const dados = {
-    nome, cpf, endereco, numero,
-    bairro: document.getElementById('nf-bairro').value.trim(),
-    cidade: document.getElementById('nf-cidade').value.trim(),
-    telefone: document.getElementById('nf-telefone').value.trim(),
-    pessoas: parseInt(document.getElementById('nf-pessoas').value)||1,
-    obs: document.getElementById('nf-obs').value.trim(),
-    paroquia, inativo: false, criadoEm: new Date().toISOString()
-  };
+  (novaPar ? registrarLocalExtra('paroquia', novaPar) : Promise.resolve(paroquia))
+    .then(parFinal => (novaCap ? registrarLocalExtra('capela', novaCap, parFinal) : Promise.resolve(capSel==='__outra__' ? '' : capSel))
+      .then(capFinal => ({parFinal, capFinal})))
+    .then(({parFinal, capFinal}) => {
+      const endereco = rua + ', ' + numero;
+      const dados = {
+        nome, cpf, endereco, numero,
+        bairro: document.getElementById('nf-bairro').value.trim(),
+        cidade: document.getElementById('nf-cidade').value.trim(),
+        telefone: document.getElementById('nf-telefone').value.trim(),
+        pessoas: parseInt(document.getElementById('nf-pessoas').value)||1,
+        obs: document.getElementById('nf-obs').value.trim(),
+        capela: capFinal || '',
+        tipo,
+        instituicaoTipo: inst ? document.getElementById('nf-inst-tipo').value : '',
+        responsavelInst: inst ? document.getElementById('nf-inst-resp').value.trim() : '',
+        paroquia: parFinal, inativo: false, criadoEm: new Date().toISOString()
+      };
+      verificarEGravarCadastro(dados, rua, numero, cpf, inst);
+    })
+    .catch(e=> toast('Erro: '+e.message,'erro'));
+}
 
+function verificarEGravarCadastro(dados, rua, numero, cpf, inst){
   toast('Verificando cadastro...');
   const cpfNorm = cpf.replace(/\D/g,'');
+  // Instituição sem CNPJ: grava direto. Com CNPJ: só checa duplicidade do CNPJ.
+  if (inst){
+    if (!cpf){ finalizarSalvarFamilia(dados); return; }
+    db.collection('familias').where('cpf','==',cpf).get().then(snap=>{
+      const dup = snap.docs.find(d=>!d.data().inativo);
+      if (dup){ toast('Já existe um cadastro ativo com este CNPJ: '+dup.data().nome, 'erro'); return; }
+      finalizarSalvarFamilia(dados);
+    }).catch(e=> toast('Erro: '+e.message,'erro'));
+    return;
+  }
   db.collection('familias').where('cpf','==',cpf).get().then(snap=>{
     const dup = snap.docs.find(d=>!d.data().inativo);
     if (dup){ toast('Já existe uma família ativa com esse CPF: '+dup.data().nome, 'erro'); return; }
@@ -692,7 +907,7 @@ function salvarNovaFamilia(){
     // Checar famílias na mesma rua, em QUALQUER paróquia — pode indicar
     // a mesma família tentando se cadastrar em mais de um lugar para
     // receber mais de uma cesta.
-    db.collection('familias').orderBy('endereco').startAt(rua).endAt(rua + '\uf8ff').get()
+    db.collection('familias').orderBy('endereco').startAt(rua).endAt(rua + '').get()
       .then(snapViz => verificarVizinhosMesmaRua(snapViz.docs.map(d=>({id:d.id, ...d.data()})), dados, cpfNorm, numero))
       .catch(() => finalizarSalvarFamilia(dados)); // fallback se índice não existir ainda
   }).catch(e=> toast('Erro: '+e.message,'erro'));
@@ -700,7 +915,7 @@ function salvarNovaFamilia(){
 
 function verificarVizinhosMesmaRua(lista, dados, cpfNorm, numero){
   const vizinhos = lista.filter(f=>{
-    if (f.inativo) return false;
+    if (f.inativo || f.tipo==='instituicao') return false;
     if (f.cpf && f.cpf.replace(/\D/g,'') === cpfNorm) return false;
     return (f.numero||'') !== numero;
   });
@@ -830,11 +1045,41 @@ document.addEventListener('click', (e)=>{
 function confirmarEntregaFamilia(){
   const f = familias.find(x=>x.id===entregaSelFamiliaId);
   if (!f){ toast('Selecione uma família.','erro'); return; }
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const jaDeu = entregas.some(e=> e.familiaId===f.id && !e.estornada && (e.data||'').slice(0,7)===mesAtual);
+  const saldo = (estoques[f.paroquia]||{}).saldo;
+  const saldoTxt = saldo!=null ? `${saldo} → <strong>${Math.max(0,saldo-1)}</strong> cesta(s)` : 'não lançado (nada será descontado)';
+  abrirSheet({
+    titulo: '📦 Confirmar entrega',
+    html: `<div style="font-size:12.5px;color:var(--text-3);margin-bottom:4px;">Confira as informações antes de registrar:</div>
+      ${shRow(f.tipo==='instituicao'?'Instituição':'Família','<strong>'+esc(f.nome)+'</strong>')}
+      ${shRow(f.tipo==='instituicao'?'CNPJ':'CPF',esc(f.cpf||'—'))}
+      ${shRow('Endereço',esc(f.endereco||'—')+(f.bairro?', '+esc(f.bairro):''))}
+      ${shRow('Pessoas',f.pessoas||1)}
+      ${shRow('Paróquia',esc(f.paroquia||'—'))}
+      ${shRow('Origem',entregaOrigemTipo==='compartilhada'?'Cesta compartilhada':'Estoque próprio')}
+      ${shRow('Data',fmtData(new Date().toISOString().slice(0,10)))}
+      ${shRow('Registrado por',esc(usuarioAtual.nome||usuarioAtual.usuario))}
+      ${shRow('Estoque',saldoTxt)}
+      ${jaDeu?'<div class="sheet-warn"><strong>⚠️ Esta família já recebeu uma cesta neste mês.</strong> Só confirme se tiver certeza.</div>':''}
+      <div style="margin-top:12px;"><label class="label">Observação (opcional)</label><input type="text" id="conf-entrega-obs"></div>`,
+    btnTexto: 'Confirmar entrega',
+    onConfirm: ()=>{
+      const obs = (document.getElementById('conf-entrega-obs')||{}).value || '';
+      fecharSheet();
+      salvarEntregaFamilia(f.id, obs.trim());
+    }
+  });
+}
+
+function salvarEntregaFamilia(familiaId, obs){
+  const f = familias.find(x=>x.id===familiaId);
+  if (!f) return;
   const entrega = {
     familiaId: f.id, familiaNome: f.nome, familiaCpf: f.cpf, paroquia: f.paroquia,
     data: new Date().toISOString().slice(0,10),
     responsavel: usuarioAtual.nome || usuarioAtual.usuario,
-    origem: entregaOrigemTipo, obs: ''
+    origem: entregaOrigemTipo, obs: obs || ''
   };
   db.collection('entregas').add(entrega).then(()=>{
     const e = estoques[f.paroquia] || {};
@@ -857,6 +1102,26 @@ function confirmarDestinacaoParoquia(){
   if (!qtd || qtd<1){ toast('Informe a quantidade.','erro'); return; }
   if (!data){ toast('Informe a data.','erro'); return; }
 
+  const saldoO = (estoques[origem]||{}).saldo || 0;
+  const saldoD = (estoques[destino]||{}).saldo || 0;
+  if (qtd > saldoO){ toast('A paróquia de origem só tem '+saldoO+' cesta(s) em estoque.','erro'); return; }
+  abrirSheet({
+    titulo: '⛪ Confirmar destinação',
+    html: `<div style="font-size:12.5px;color:var(--text-3);margin-bottom:4px;">Confira as informações antes de confirmar:</div>
+      ${shRow('Envia','<strong>'+esc(origem)+'</strong>')}
+      ${shRow('Recebe','<strong>'+esc(destino)+'</strong>')}
+      ${shRow('Quantidade','<strong>'+qtd+'</strong> cesta(s)')}
+      ${shRow('Data',fmtData(data))}
+      ${shRow('Observação',esc(obs||'—'))}
+      ${shRow('Estoque origem',saldoO+' → <strong>'+(saldoO-qtd)+'</strong>')}
+      ${shRow('Estoque destino',saldoD+' → <strong>'+(saldoD+qtd)+'</strong>')}
+      ${shRow('Registrado por',esc(usuarioAtual.nome||usuarioAtual.usuario))}`,
+    btnTexto: 'Confirmar destinação',
+    onConfirm: ()=>{ fecharSheet(); executarDestinacaoParoquia(origem, destino, qtd, data, obs); }
+  });
+}
+
+function executarDestinacaoParoquia(origem, destino, qtd, data, obs){
   const eOrigem = estoques[origem] || {};
   const eDestino = estoques[destino] || {};
   const novoSaldoOrigem = Math.max(0, (eOrigem.saldo||0) - qtd);
@@ -927,6 +1192,17 @@ function renderEstoque(){
             <div class="col" style="gap:1px;flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">${esc(p.paroquia)}</div><div style="font-size:11.5px;color:var(--text-3);">${p.compartilhavel} cesta(s) disponível(is)</div></div>
             <button class="btn-secondary btn-sm" style="width:auto;" onclick="solicitarCompartilhado('${esc(p.paroquia)}', ${p.compartilhavel})">Solicitar</button>
           </div>`).join('') : '<div class="list-item" style="color:var(--text-3);font-size:13px;">Nenhuma paróquia com sobra disponível no momento.</div>'}
+      </div>
+    </div>
+    <div class="col" style="gap:10px;">
+      <h2 class="serif" style="margin:0;font-size:15px;">↩️ Correções de baixa</h2>
+      <div class="grouped">
+        ${correcoesEstoque.length ? correcoesEstoque.slice(0,10).map(c=>`
+          <div class="list-item col" style="gap:2px;">
+            <div class="row" style="justify-content:space-between;"><span style="font-size:13px;font-weight:600;">${esc(c.descricao||'—')}</span><span style="font-size:13px;font-weight:700;color:var(--accent);">+${c.quantidade||0}</span></div>
+            <div style="font-size:11.5px;color:#9A6700;">${esc(c.texto||'Baixa lançada por engano')}</div>
+            <div style="font-size:11.5px;color:var(--text-3);">${esc(c.motivo||'—')} · ${esc(c.por||'—')} · ${fmtData(c.em)}</div>
+          </div>`).join('') : '<div class="list-item" style="color:var(--text-3);font-size:13px;">Nenhuma correção registrada.</div>'}
       </div>
     </div>
     <div class="col" style="gap:10px;">
@@ -1024,7 +1300,7 @@ function iconGear(){ return `<svg width="19" height="19" viewBox="0 0 24 24" fil
 function renderHistorico(){
   const meses = [...new Set(entregas.map(e=>(e.data||'').slice(0,7)))].filter(Boolean).sort().reverse();
   const combinados = [
-    ...entregas.map(e=>({tipo:'familia', data:e.data, destino:e.familiaNome, origem:e.origem==='compartilhada'?'Cesta compartilhada':'Estoque próprio'})),
+    ...entregas.map(e=>({tipo:'familia', id:e.id, data:e.data, destino:e.familiaNome, origem:e.origem==='compartilhada'?'Cesta compartilhada':'Estoque próprio', ent:e})),
     ...compartilhamentos.map(c=>({tipo:'paroquia', data:c.data, destino:c.paroquiaDestino, origem:'Destinação a paróquia ('+c.quantidade+')'}))
   ].filter(h=> !historicoFiltroMes || (h.data||'').slice(0,7)===historicoFiltroMes)
    .sort((a,b)=>(b.data||'').localeCompare(a.data||''));
@@ -1038,12 +1314,66 @@ function renderHistorico(){
     </select>
     <div class="col" style="gap:8px;">
       ${combinados.length ? combinados.map(h=>`
-        <div class="card row" style="align-items:center;gap:12px;">
-          <div class="avatar" style="width:32px;height:32px;font-size:11px;">${esc(initialsOf(h.destino))}</div>
-          <div class="col" style="flex:1;gap:1px;"><div style="font-size:13.5px;font-weight:600;">${esc(h.destino)}</div><div style="font-size:11.5px;color:var(--text-3);">${fmtData(h.data)} · ${esc(h.origem)}</div></div>
+        <div class="card col" style="gap:8px;${h.ent&&h.ent.estornada?'opacity:.85;':''}">
+          <div class="row" style="align-items:center;gap:12px;">
+            <div class="avatar" style="width:32px;height:32px;font-size:11px;">${esc(initialsOf(h.destino))}</div>
+            <div class="col" style="flex:1;gap:1px;"><div style="font-size:13.5px;font-weight:600;${h.ent&&h.ent.estornada?'text-decoration:line-through;color:var(--text-3);':''}">${esc(h.destino)}</div><div style="font-size:11.5px;color:var(--text-3);">${fmtData(h.data)} · ${esc(h.origem)}</div></div>
+            ${h.ent && !h.ent.estornada && podeCorrigirEntrega(h.ent) ? `<button class="btn-secondary btn-sm" style="width:auto;padding:0 12px;height:34px;font-size:12.5px;" onclick="abrirEstornoEntrega('${h.id}')">↩️ Corrigir</button>` : ''}
+          </div>
+          ${h.ent && h.ent.estornada ? `<div class="sheet-warn" style="margin-top:0;"><strong>↩️ Estornada</strong> — baixa lançada por engano, cesta devolvida ao estoque.<br>Motivo: ${esc(h.ent.estornoMotivo||'—')}<br>Por ${esc(h.ent.estornoPor||'—')}${h.ent.estornoEm?' em '+fmtData(h.ent.estornoEm):''}</div>` : ''}
         </div>`).join('') : '<div class="card" style="text-align:center;color:var(--text-3);">Nenhum registro.</div>'}
     </div>
   </div>`;
+}
+
+function abrirEstornoEntrega(id){
+  const e = entregas.find(x=>x.id===id);
+  if (!e || e.estornada) return;
+  if (!podeCorrigirEntrega(e)){ toast('Sem permissão para corrigir entregas de outra paróquia.','erro'); return; }
+  const saldo = (estoques[e.paroquia]||{}).saldo;
+  abrirSheet({
+    titulo: '↩️ Corrigir baixa lançada por engano',
+    html: `<div style="font-size:13px;line-height:1.5;">A entrega será <strong>estornada</strong>: continua no histórico marcada como baixa errada e <strong>1 cesta volta ao estoque</strong>.</div>
+      <div style="margin-top:8px;">
+      ${shRow('Família','<strong>'+esc(e.familiaNome||'—')+'</strong>')}
+      ${shRow('Data',fmtData(e.data))}
+      ${shRow('Paróquia',esc(e.paroquia||'—'))}
+      ${shRow('Estoque',saldo!=null ? saldo+' → <strong>'+(saldo+1)+'</strong>' : 'não lançado (nada a devolver)')}
+      </div>
+      ${htmlMotivoCorrecao()}`,
+    btnTexto: 'Estornar e devolver ao estoque',
+    perigo: true,
+    onConfirm: ()=>{
+      const motivo = lerMotivoCorrecao();
+      if (!motivo) return;
+      fecharSheet();
+      executarEstornoEntrega(id, motivo);
+    }
+  });
+}
+
+function executarEstornoEntrega(id, motivo){
+  const ent = entregas.find(x=>x.id===id);
+  if (!ent || ent.estornada) return;
+  if (!podeCorrigirEntrega(ent)){ toast('Sem permissão.','erro'); return; }
+  const agora = new Date().toISOString();
+  const por = usuarioAtual.nome || usuarioAtual.usuario;
+  const par = ent.paroquia;
+  const e = estoques[par];
+  const descricao = 'Cesta entregue a '+(ent.familiaNome||'—')+' em '+fmtData(ent.data);
+  const texto = 'Baixa lançada por engano — cesta devolvida ao estoque';
+  const ops = [
+    db.collection('entregas').doc(id).update({ estornada:true, estornoMotivo:motivo, estornoPor:por, estornoEm:agora }),
+    db.collection('correcoes_estoque').add({ origem:'entrega', paroquia:par, quantidade:1, unidade:'cesta(s)', descricao, motivo, por, em:agora, texto, refId:id })
+  ];
+  const devolveu = e && e.saldo != null;
+  if (devolveu){
+    ops.push(db.collection('estoques').doc(par).set({ ...e, saldo:e.saldo+1, ultimaAtualizacao:agora.slice(0,10),
+      totalCorrecoes:(e.totalCorrecoes||0)+1, ultimaCorrecao:{ quantidade:1, motivo, por, em:agora, descricao, texto } }));
+  }
+  Promise.all(ops)
+    .then(()=> toast(devolveu ? 'Baixa corrigida: 1 cesta devolvida ao estoque.' : 'Entrega estornada (estoque não estava lançado).','ok'))
+    .catch(err=> toast('Erro: '+err.message,'erro'));
 }
 
 /* ================= AGENTES ================= */
@@ -1109,7 +1439,7 @@ function salvarNovoAgente(){
 function renderPainelDiocese(){
   const porParoquia = {};
   familias.forEach(f=>{ porParoquia[f.paroquia] = porParoquia[f.paroquia] || {familias:0, entregas:0}; if(!f.inativo) porParoquia[f.paroquia].familias++; });
-  entregas.forEach(e=>{ porParoquia[e.paroquia] = porParoquia[e.paroquia] || {familias:0, entregas:0}; porParoquia[e.paroquia].entregas++; });
+  entregas.filter(e=>!e.estornada).forEach(e=>{ porParoquia[e.paroquia] = porParoquia[e.paroquia] || {familias:0, entregas:0}; porParoquia[e.paroquia].entregas++; });
   const linhas = Object.entries(porParoquia).sort((a,b)=>b[1].familias-a[1].familias);
   const totalFamilias = familias.filter(f=>!f.inativo).length;
 
